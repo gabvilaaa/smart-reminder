@@ -53,9 +53,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   Color unselectedColor = Colors.blueGrey;
 
   Gradient selectedGradient =
-      const LinearGradient(colors: [Colors.red, Colors.amber]);
+  const LinearGradient(colors: [Colors.red, Colors.amber]);
   Gradient unselectedGradient =
-      const LinearGradient(colors: [Colors.red, Colors.blueGrey]);
+  const LinearGradient(colors: [Colors.red, Colors.blueGrey]);
   Color? containerColor;
   List<Color> containerColors = [
     const Color(0xFFFDE1D7),
@@ -88,7 +88,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           ///configuration for SnakeNavigationBar.color
           snakeViewColor: selectedColor,
           selectedItemColor:
-              snakeShape == SnakeShape.indicator ? selectedColor : null,
+          snakeShape == SnakeShape.indicator ? selectedColor : null,
           unselectedItemColor: unselectedColor,
 
           ///configuration for SnakeNavigationBar.gradient
@@ -146,7 +146,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           children: [
             IconButton(
               icon:
-                  const Icon(Icons.menu_rounded, color: Colors.white, size: 40),
+              const Icon(Icons.menu_rounded, color: Colors.white, size: 40),
               onPressed: () => scaffoldKey.currentState?.openDrawer(),
             ),
             Expanded(
