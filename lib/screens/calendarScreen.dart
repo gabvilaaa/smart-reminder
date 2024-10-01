@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
-
+import 'dart:math';
 
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({super.key});
@@ -21,7 +21,10 @@ class CalendarScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Card(
-              color: const Color.fromARGB(255, 223, 219, 219),
+              color: Color.fromRGBO(Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextDouble()),
               elevation: 5,
               child: ListTile(
                 title: const Text('Meeting with team'),
@@ -34,7 +37,10 @@ class CalendarScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Card(
-              color: const Color.fromARGB(255, 223, 219, 219),
+              color: Color.fromRGBO(Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextDouble()),
               elevation: 5,
               child: ListTile(
                 title: const Text('Project Deadline'),

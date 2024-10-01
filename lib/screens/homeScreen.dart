@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
+import 'dart:math';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -22,7 +23,10 @@ class HomeScreen extends StatelessWidget {
               itemCount: 5,
               itemBuilder: (context, index) {
                 return Card(
-                  color: const Color.fromARGB(255, 223, 219, 219),
+                  color: Color.fromRGBO(Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextDouble()),
                   margin: const EdgeInsets.all(8),
                   child: ListTile(
                     title: Text('Reminder ${index + 1}'),

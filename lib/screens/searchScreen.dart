@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
-
+import 'dart:math';
 
 class SearchScreen extends StatelessWidget {
   const SearchScreen({super.key});
@@ -30,7 +30,10 @@ class SearchScreen extends StatelessWidget {
               itemCount: 10,
               itemBuilder: (context, index) {
                 return Card(
-                  color: const Color.fromARGB(255, 223, 219, 219),
+                  color: Color.fromRGBO(Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextDouble()),
                   margin: const EdgeInsets.all(8),
                   child: ListTile(
                     title: Text('Search Result ${index + 1}'),

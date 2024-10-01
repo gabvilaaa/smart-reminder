@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
+import 'dart:math';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -36,6 +37,7 @@ class SettingsScreen extends StatelessWidget {
           SwitchListTile(
             title: const Text('Enable Notifications'),
             value: true,
+            activeColor:  Color.fromRGBO(0,220,0,1),
             onChanged: (value) {
               // Update notification settings
             },
@@ -43,6 +45,8 @@ class SettingsScreen extends StatelessWidget {
           SwitchListTile(
             title: const Text('Dark Mode'),
             value: false,
+            inactiveThumbColor:  Color.fromRGBO(255,0,0,1),
+            inactiveTrackColor:  Color.fromRGBO(255,0,0,0.4),
             onChanged: (value) {
               // Update theme settings
             },
@@ -54,7 +58,10 @@ class SettingsScreen extends StatelessWidget {
 
   Widget _buildUserProfile(BuildContext context) {
     return Card(
-      color: const Color.fromARGB(255, 223, 219, 219),
+      color: Color.fromRGBO(Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextInt(255),
+                    1),
       child: ListTile(
         leading: const CircleAvatar(
           radius: 25,

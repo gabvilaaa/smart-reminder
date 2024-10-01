@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
+import 'dart:math';
 
 class DeviceScreen extends StatelessWidget {
   const DeviceScreen({super.key});
@@ -17,7 +18,10 @@ class DeviceScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Card(
-            color: const Color.fromARGB(255, 223, 219, 219),
+            color: Color.fromRGBO(Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextInt(255),
+                    1),
             child: ListTile(
               title: const Text('ESP-32 Room'),
               subtitle: const Text('Active'),
@@ -28,7 +32,10 @@ class DeviceScreen extends StatelessWidget {
             ),
           ),
           Card(
-            color: const Color.fromARGB(255, 223, 219, 219),
+            color: Color.fromRGBO(Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextInt(255),
+                    Random().nextDouble()),
             child: ListTile(
               title: const Text('ESP-32 Office'),
               subtitle: const Text('Description '),
@@ -77,9 +84,19 @@ class AddDevice extends StatelessWidget {
                 onPressed: () {},
                 child: const Text(
                   "Search Device",
-                  textAlign: TextAlign.left ,
-                  style: TextStyle(color: Color.fromRGBO(0, 0, 0, 1),),
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    color: Color.fromRGBO(0, 0, 0, 1),
+                  ),
                 )),
+            Text("Digite o apelido:"),
+            TextField(
+              decoration: InputDecoration(
+                labelText: 'Search...',
+                border: OutlineInputBorder(),
+                suffixIcon: const Icon(Icons.search),
+              ),
+            ),
           ],
         ),
       ),
