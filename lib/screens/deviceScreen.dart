@@ -1,18 +1,32 @@
+import 'dart:async';
+import 'dart:core';
+
 import 'package:flutter/material.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:math';
 
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'scan_screen2.dart';
 
 class DeviceScreen extends StatefulWidget {
-  const DeviceScreen({super.key});
+  final bool start;
+
+  const DeviceScreen({super.key, this.start = true});
 
   @override
   _CreateDeviceScreen createState() => _CreateDeviceScreen();
 }
 
 class _CreateDeviceScreen extends State<DeviceScreen> {
-  Esp espSalvo = new Esp(name: "vazio", subtittle: "vazio", code: 0);
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Esp espSalvo = const Esp(name: "vazio", subtittle: "vazio", code: 0);
   List<Esp> espAvaibles = [];
 
   _recuperarDados() async {
@@ -21,7 +35,7 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       int i = 1;
-      for (int i = 1; i <= getEsp().length; i++) {
+      for (int i = -100; i <= 100; i++) {
         if (prefs.containsKey("devices/esp$i/nome")) {
           espName = prefs.getString("devices/esp$i/nome") ?? "Vazio";
           espSubtittle = prefs.getString("devices/esp$i/subtitle") ?? "Vazio";
@@ -66,7 +80,23 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
                       ),
                     )
                   : Card();
-            }),
+            }
+                //   return (results.isNotEmpty)
+                //       ? Card(
+                //     color: Colors.greenAccent,
+                //     child: ListTile(
+                //       title: Text(results[index].device.name.toString()),
+                //       subtitle: Text(results[index].rssi.toString()),
+                //       trailing: const Icon(Icons.check),
+                //       onTap: () {
+                //         // Navigate to episode details
+                //       },
+                //     ),
+                //   )
+                //       : Card();
+                // }
+
+                ),
           )
         ],
       ),
@@ -76,13 +106,14 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
           showDialog(
             context: context,
             builder: (BuildContext context) {
-              return const AddDevice();
+              return AddDevice();
             },
           );
         },
         child: const Icon(Icons.add),
       ),
     );
+    // children: List.generate(espAvaibles.length, (index) {
   }
 }
 
@@ -94,110 +125,167 @@ class AddDevice extends StatefulWidget {
 }
 
 class _AddDeviceState extends State<AddDevice> {
+
   List<Esp> devices = [];
   Esp espSelecionado = const Esp(name: "name", subtittle: "subtittle", code: 0);
+  BluetoothAdapterState _adapterState = BluetoothAdapterState.unknown;
+  late StreamSubscription<BluetoothAdapterState> _adapterStateStateSubscription;
+
+  late List<ScanResult> results = [];
+  late StreamSubscription<List<ScanResult>> _scanResultsSubscription;
+  late StreamSubscription<bool> _isScanningSubscription;
+  bool _isScanning = false;
+
+  Future _requestBluetoothPermission() async {
+    if (await Permission.bluetooth.isDenied ||
+        await Permission.bluetoothConnect.isDenied ||
+        await Permission.bluetoothScan.isDenied ||
+        await Permission.location.isDenied) {
+      await [
+        Permission.bluetooth,
+        Permission.bluetoothConnect,
+        Permission.bluetoothScan,
+        Permission.location,
+      ].request();
+    } else {}
+  }
 
   @override
   void initState() {
     super.initState();
-    devices = getEsp();
+    _requestBluetoothPermission();
+
+    _scanResultsSubscription =
+        FlutterBluePlus.scanResults.listen((tempResults) {
+      results = tempResults;
+
+      if (mounted) {
+        setState(() {});
+      }
+    });
+
+    _isScanningSubscription = FlutterBluePlus.isScanning.listen((state) {
+      _isScanning = state;
+      if (mounted) {
+        setState(() {});
+      }
+    });
+
+
+  }
+
+  @override
+  void dispose() {
+    _scanResultsSubscription.cancel();
+    _isScanningSubscription.cancel();
+    super.dispose();
+  }
+
+  Future getResults() async {
+    await FlutterBluePlus.startScan(
+        timeout: const Duration(seconds: 15),
+        androidUsesFineLocation: true,
+        androidScanMode: AndroidScanMode.balanced,
+        androidLegacy: false);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  List<Widget> _buildScanResultTiles(BuildContext context) {
+    return results
+        .map(
+          (r) => Card(
+            child: ListTile(
+                title: Text(r.device.advName),
+                subtitle: Text(r.device.platformName)),
+          ),
+        )
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     String apelido = "";
     return Dialog(
-      child: Padding(
-        padding: EdgeInsets.all(16.0), // Adiciona padding ao conteúdo
-        child: Column(
-          mainAxisSize: MainAxisSize.min, // Define o tamanho do Column
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            const Text(
-              "Add Device",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20), // Tamanho da fonte opcional
-            ),
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+      child: SizedBox(
+        height: 900,
+        child: Padding(
+          padding: EdgeInsets.all(16.0), // Adiciona padding ao conteúdo
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // Define o tamanho do Column
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
               const Text(
-                "Device List",
-                textAlign: TextAlign.left,
-                style: TextStyle(
-                  color: Color.fromRGBO(0, 0, 0, 1),
-                ),
+                "Add Device",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 20), // Tamanho da fonte opcional
               ),
-              LoadingAnimationWidget.hexagonDots(color: Colors.black, size: 20),
-            ]),
-            Center(
-              child: SizedBox(
-                height: 200, // Define uma altura para o ListView
-                child: ListView.builder(
-                  itemCount: devices.length,
-                  itemBuilder: (context, index) {
-                    final espAdded = devices[index];
-                    return Card(
-                      child: RadioListTile(
-                        title: Text(espAdded.name),
-                        subtitle: Text(espAdded.subtittle),
-                        value: espAdded,
-                        groupValue: espSelecionado,
-                        onChanged: (Esp? escolhido) {
-                          setState(() {
-                            espSelecionado = escolhido!;
-                          });
-                        },
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Text(
+                  "Device List",
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    color: Color.fromRGBO(0, 0, 0, 1),
+                  ),
+                ),
+                (FlutterBluePlus.isScanningNow)
+                    ? LoadingAnimationWidget.hexagonDots(
+                        color: Colors.black, size: 20)
+                    : FloatingActionButton(
+                        onPressed: getResults,
+                        child: const Text("Scan"),
                       ),
-                    );
-                  },
+              ]),
+              Center(
+                child: SizedBox(
+                  height: 200, // Define uma altura para o ListView
+                  child: ListView.builder(
+                    itemCount: results.length,
+                    itemBuilder: (context, index) {
+                      final espAdded = Esp.deviceToEsp(results[index]);
+                      return Card(
+                        child: RadioListTile(
+                          title: Text(espAdded.name),
+                          subtitle: Text(espAdded.subtittle),
+                          value: espAdded,
+                          groupValue: espSelecionado,
+                          onChanged: (Esp? escolhido) {
+                            setState(() {
+                              espSelecionado = escolhido!;
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
-            const Text("Digite o apelido:"),
-            TextField(
-              onChanged: (String text) {
-                apelido = text;
-              },
-              decoration: const InputDecoration(
-                labelText: 'Nome do dispositivo',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.search),
+              const Text("Digite o apelido:"),
+              TextField(
+                onChanged: (String text) {
+                  apelido = text;
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Nome do dispositivo',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.search),
+                ),
               ),
-            ),
-            FloatingActionButton(
-              onPressed: () {
-                if (espSelecionado.name != "vazio") {
-                  espSelecionado.salvarEsp(apelido);
-                }
-              },
-              child: const Text("Salvar"),
-            )
-          ],
+              FloatingActionButton(
+                onPressed: () {
+                  if (espSelecionado.name != "vazio") {
+                    espSelecionado.salvarEsp(apelido);
+                  }
+                },
+                child: const Text("Salvar"),
+              )
+            ],
+          ),
         ),
       ),
     );
   }
-}
-
-List<Esp> getEsp() {
-  const data = [
-    {"name": "EspCasa", "subtittle": "teste", "code": 1},
-    {"name": "EspQuarto", "subtittle": "teste", "code": 2},
-    {"name": "EspSala", "subtittle": "teste", "code": 3},
-    {"name": "EspCozinha", "subtittle": "teste", "code": 4},
-    {"name": "EspBanheiro", "subtittle": "teste", "code": 5},
-    {"name": "EspEscritório", "subtittle": "teste", "code": 6},
-    {"name": "EspGaragem", "subtittle": "teste", "code": 7},
-    {"name": "EspJardim", "subtittle": "teste", "code": 8},
-    {"name": "EspVaranda", "subtittle": "teste", "code": 9},
-    {"name": "EspLavanderia", "subtittle": "teste", "code": 10},
-    {"name": "EspSalaTV", "subtittle": "teste", "code": 11},
-    {"name": "EspBiblioteca", "subtittle": "teste", "code": 12},
-    {"name": "EspHall", "subtittle": "teste", "code": 13},
-    {"name": "EspSótão", "subtittle": "teste", "code": 14},
-    {"name": "EspAdega", "subtittle": "teste", "code": 15},
-    {"name": "EspPorão", "subtittle": "teste", "code": 16},
-  ];
-  return data.map<Esp>(Esp.fromJson).toList();
 }
 
 class Esp {
@@ -207,14 +295,29 @@ class Esp {
 
   const Esp({required this.name, required this.subtittle, required this.code});
 
+  static Future<int> getLastCode() async{
+    final prefs = await SharedPreferences.getInstance();
+    int i=0;
+    for(i =0; prefs.getString("devices/esp$i/nome")!.isNotEmpty;i++ );
+    return i;
+  }
+
+  static Esp deviceToEsp(ScanResult temp) {
+    int tempCode = getLastCode();
+    return Esp(
+        name: temp.device.advName.toString(),
+        subtittle: temp.device.remoteId.toString(),
+        code: temp.rssi);
+  }
+
   static Esp fromJson(json) =>
       Esp(name: json['name'], subtittle: json['subtittle'], code: json['code']);
 
   void salvarEsp(String nickName) async {
     final prefs = await SharedPreferences.getInstance();
-    if(nickName.isNotEmpty) {
+    if (nickName.isNotEmpty) {
       await prefs.setString("devices/esp${this.code}/nome", nickName);
-    }else{
+    } else {
       await prefs.setString("devices/esp${this.code}/nome", this.name);
     }
     await prefs.setString("devices/esp${this.code}/subtitle", this.subtittle);
