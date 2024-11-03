@@ -13,7 +13,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> reminders = [];
+  List<Map<String, dynamic>> reminders = List.empty(growable: true);
+
   bool _estaAtualizando = true;
 
   @override
@@ -26,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     List<Map<String, dynamic>> loadedReminders = await DatabaseHelper().getReminders();
     print("Lembretes carregados do banco de dados: $loadedReminders");
     setState(() {
-      reminders = loadedReminders;
+      reminders = List.from(loadedReminders); // Cria uma cópia modificável da lista
     });
   }
 
@@ -98,13 +99,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (index == null) {
                       // Adicionar novo lembrete ao banco de dados
                       DatabaseHelper().insertReminder(newReminder);
-                      print(DatabaseHelper().getReminders());
+
                       reminders.add(newReminder); // Atualizar lista local
                     } else {
                       // Atualizar lembrete existente
                       int id = reminders[index]['id'];
                       DatabaseHelper().updateReminder(id, newReminder);
-                      print(DatabaseHelper().getReminders());
+
                       reminders[index] = newReminder; // Atualizar lista local
                     }
                   });
