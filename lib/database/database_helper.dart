@@ -18,20 +18,33 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'reminders.db');
     return await openDatabase(
       path,
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE reminders(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            description TEXT,
-            date TEXT,
-            createdAt TEXT,
-            updatedAt TEXT
-          )
-        ''');
-      },
+      version: 2,
+      onCreate: _onCreate
     );
+  }
+
+  Future<void> _onCreate(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE reminders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        description TEXT,
+        date TEXT,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        surname TEXT,
+        email TEXT,
+        password TEXT,
+        FOREIGN KEY (reminder_id) REFERENCES reminders(id)
+      )
+    ''');
   }
 
   Future<int> insertReminder(Map<String, String> reminder) async {
@@ -51,4 +64,36 @@ class DatabaseHelper {
     final db = await database;
     return await db.query('reminders');
   }
+
+  Future<int> insertUser(int id, Map<String, String> users) async {
+    final db = await database;
+    return await db.insert('user', users);
+  }
+
+  Future<List<Map<String, dynamic>>> getUser() async {
+    final db = await database;
+    return await db.query('users');
+  }
+
+  Future<void> close() async {
+    final db = await _database;
+    if (db != null) {
+      await db.close();
+    }
+  }
+
+  Future<bool> userExists(String email) async {
+    final db = await database;
+
+    // Consulta para verificar por email
+    final List<Map<String, dynamic>> results = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+
+    // Retorna true se encontrar pelo menos um registro, caso contrário, false
+    return results.isNotEmpty;
+  }
 }
+
