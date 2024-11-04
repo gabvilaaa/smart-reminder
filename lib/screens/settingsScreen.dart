@@ -17,6 +17,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String userSurname = 'Messi';
   String password = '';
   File? userProfileImage;
+  bool isUpdate = false;
 
   Future<void> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
@@ -32,22 +33,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _insertUser() async {
     bool exists = await DatabaseHelper().userExists(userEmail);
     if (exists) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Erro'),
-            content: const Text('Um usuário com este e-mail já está cadastrado.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Fecha o diálogo
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
+      setState(() {
+        isUpdate = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuário já existe. Use "Salvar" para atualizar.')),
       );
     } else {
       Map<String, String> user = {
@@ -58,13 +48,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'profile_image': userProfileImage?.path ?? '',
       };
 
-      await DatabaseHelper().insertUser(0, user);
+      await DatabaseHelper().insertUser(user);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Usuário cadastrado com sucesso!')),
       );
-      Navigator.pop(context); // Fechar o pop-up após o cadastro
-      setState(() {}); // Atualizar a tela
+      Navigator.pop(context);
+      setState(() {});
     }
+  }
+
+  Future<void> _updateUser() async {
+    Map<String, String> user = {
+      'name': userName,
+      'surname': userSurname,
+      'email': userEmail,
+      'password': password,
+      'profile_image': userProfileImage?.path ?? '',
+    };
+
+    await DatabaseHelper().updateUser(1, user);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Usuário atualizado com sucesso!')),
+    );
+    Navigator.pop(context);
+    setState(() {});
   }
 
   @override
@@ -79,7 +86,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-
           const Text(
             'User Account',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -87,7 +93,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 10),
           _buildUserProfile(context),
           const SizedBox(height: 20),
-
           const Text(
             'Settings Options',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -97,18 +102,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Enable Notifications'),
             value: true,
             activeColor: Colors.green,
-            onChanged: (value) {
-              // Update notification settings
-            },
+            onChanged: (value) {},
           ),
           SwitchListTile(
             title: const Text('Dark Mode'),
             value: false,
             inactiveThumbColor: Colors.red,
             inactiveTrackColor: Colors.red.withOpacity(0.4),
-            onChanged: (value) {
-              // Update theme settings
-            },
+            onChanged: (value) {},
           ),
         ],
       ),
@@ -209,7 +210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           ElevatedButton(
                             onPressed: () {
-                              Navigator.pop(context); // Fechar o pop-up ao cancelar
+                              Navigator.pop(context);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.grey[400],
@@ -217,8 +218,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: const Text('Cancelar'),
                           ),
                           ElevatedButton(
-                            onPressed: _insertUser, // Chama a função para cadastrar o usuário
-                            child: const Text('Cadastrar'),
+                            onPressed: isUpdate ? _updateUser : _insertUser,
+                            child: const Text('Salvar'),
                           ),
                         ],
                       ),
