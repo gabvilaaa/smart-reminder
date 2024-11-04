@@ -42,16 +42,18 @@ class DatabaseHelper {
       surname TEXT,
       email TEXT,
       password TEXT,
-      reminder_id INTEGER,
-      FOREIGN KEY (reminder_id) REFERENCES reminders(id)
+      profile_image TEXT,
+      created_at TEXT,
+      updated_at TEXT
+      
     )
   ''');
   }
 
   Future<int> insertReminder(Map<String, String> reminder) async {
     final db = await database;
-    reminder['createdAt'] = DateTime.now().toString();
-    reminder['updatedAt'] = DateTime.now().toString();
+    reminder['created_at'] = DateTime.now().toString();
+    reminder['updated_at'] = DateTime.now().toString();
     return await db.insert('reminders', reminder);
   }
 
