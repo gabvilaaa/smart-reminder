@@ -24,27 +24,28 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE reminders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        description TEXT,
-        date TEXT,
-        created_at TEXT,
-        updated_at TEXT
-      )
-    ''');
+  await db.execute('''
+    CREATE TABLE reminders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT,
+      description TEXT,
+      date TEXT,
+      created_at TEXT,
+      updated_at TEXT
+    )
+  ''');
 
-    await db.execute('''
-      CREATE TABLE users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        surname TEXT,
-        email TEXT,
-        password TEXT,
-        FOREIGN KEY (reminder_id) REFERENCES reminders(id)
-      )
-    ''');
+  await db.execute('''
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      surname TEXT,
+      email TEXT,
+      password TEXT,
+      reminder_id INTEGER,
+      FOREIGN KEY (reminder_id) REFERENCES reminders(id)
+    )
+  ''');
   }
 
   Future<int> insertReminder(Map<String, String> reminder) async {
