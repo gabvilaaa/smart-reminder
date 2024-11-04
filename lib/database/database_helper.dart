@@ -66,9 +66,11 @@ class DatabaseHelper {
     return await db.query('reminders');
   }
 
-  Future<int> insertUser(int id, Map<String, String> users) async {
+  Future<int> insertUser(Map<String, String> user) async {
     final db = await database;
-    return await db.insert('user', users);
+    user['created_at'] = DateTime.now().toString();
+    user['updated_at'] = DateTime.now().toString();
+    return await db.insert('users', user);
   }
 
   Future<List<Map<String, dynamic>>> getUser() async {
@@ -86,15 +88,29 @@ class DatabaseHelper {
   Future<bool> userExists(String email) async {
     final db = await database;
 
-    // Consulta para verificar por email
     final List<Map<String, dynamic>> results = await db.query(
       'users',
       where: 'email = ?',
       whereArgs: [email],
     );
 
-    // Retorna true se encontrar pelo menos um registro, caso contrário, false
     return results.isNotEmpty;
+  }
+
+  Future<int> deleteUser(int id) async {
+    final db = await database;
+    return await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteReminder(int id) async {
+    final db = await database;
+    return await db.delete('reminders', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateUser(int id, Map<String, String> user) async {
+    final db = await database;
+    user['updated_at'] = DateTime.now().toString();
+    return await db.update('users', user, where: 'id = ?', whereArgs: [id]);
   }
 }
 

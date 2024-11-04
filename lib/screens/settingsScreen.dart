@@ -18,16 +18,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String password = '';
   File? userProfileImage;
 
-  Future<File> _pickImage() async {
+  Future<void> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
       setState(() {
+        userProfileImage = File(image.path);
       });
-        return File(image.path).absolute;
     }
-    return File("");
   }
 
   Future<void> _insertUser() async {
@@ -38,8 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Erro'),
-            content:
-                const Text('Um usuário com este e-mail já está cadastrado.'),
+            content: const Text('Um usuário com este e-mail já está cadastrado.'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -82,6 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
+
           const Text(
             'User Account',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -89,6 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 10),
           _buildUserProfile(context),
           const SizedBox(height: 20),
+
           const Text(
             'Settings Options',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
