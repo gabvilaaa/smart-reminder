@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '/database/database_helper.dart'; // Certifique-se de importar seu helper de banco de dados
+import '/database/database_helper.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,8 +14,8 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String userName = 'Lionel';
   String userEmail = 'lionel@gmail.com';
-  String sobrenome = 'Messi';
-  String password = 'null';
+  String userSurname = 'Messi';
+  String password = '';
   File? userProfileImage;
 
   Future<void> _pickImage() async {
@@ -29,16 +29,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<bool> _userExists(String email) async {
-    // Verifica se o usuário já existe no banco de dados
-    return await DatabaseHelper().userExists(email);
-  }
-
   Future<void> _insertUser() async {
-    // Primeiro, verifica se o usuário já existe
-    bool exists = await _userExists(userEmail);
+    bool exists = await DatabaseHelper().userExists(userEmail);
     if (exists) {
-      // Exibir um diálogo informando que o usuário já está cadastrado
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -57,18 +50,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         },
       );
     } else {
-      // Insere o novo usuário no banco de dados
       Map<String, String> user = {
         'name': userName,
-        'surname': sobrenome,
+        'surname': userSurname,
         'email': userEmail,
-        'password': password, // Corrigido para usar a senha correta
+        'password': password,
         'profile_image': userProfileImage?.path ?? '',
       };
 
-      await DatabaseHelper().insertUser(0, user); // O ID será gerado automaticamente
-      Navigator.pop(context); // Fechar o pop-up após o login
-      setState(() {}); // Atualizar a tela para mostrar as novas informações
+      await DatabaseHelper().insertUser(0, user);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuário cadastrado com sucesso!')),
+      );
+      Navigator.pop(context); // Fechar o pop-up após o cadastro
+      setState(() {}); // Atualizar a tela
     }
   }
 
@@ -85,7 +80,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // User Account Section
           const Text(
             'User Account',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -94,7 +88,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildUserProfile(context),
           const SizedBox(height: 20),
 
-          // Settings Options
           const Text(
             'Settings Options',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -103,7 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SwitchListTile(
             title: const Text('Enable Notifications'),
             value: true,
-            activeColor: Color.fromRGBO(0, 220, 0, 1),
+            activeColor: Colors.green,
             onChanged: (value) {
               // Update notification settings
             },
@@ -111,8 +104,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SwitchListTile(
             title: const Text('Dark Mode'),
             value: false,
-            inactiveThumbColor: Color.fromRGBO(255, 0, 0, 1),
-            inactiveTrackColor: Color.fromRGBO(255, 0, 0, 0.4),
+            inactiveThumbColor: Colors.red,
+            inactiveTrackColor: Colors.red.withOpacity(0.4),
             onChanged: (value) {
               // Update theme settings
             },
@@ -155,7 +148,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Login',
+                        'Login/Cadastro',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -165,10 +158,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 16),
                       TextField(
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Nome',
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                         ),
                         onChanged: (value) {
                           userName = value;
@@ -176,21 +168,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Sobrenome',
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                         ),
                         onChanged: (value) {
-                          sobrenome = value;
+                          userSurname = value;
                         },
                       ),
                       const SizedBox(height: 12),
                       TextField(
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Email',
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                         ),
                         keyboardType: TextInputType.emailAddress,
                         onChanged: (value) {
@@ -199,21 +189,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Senha',
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                         ),
                         onChanged: (value) {
-                          password = value; // Corrigido para usar a senha correta
+                          password = value;
                         },
                         obscureText: true,
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () {
-                          _pickImage(); // Permitir ao usuário escolher uma foto
-                        },
+                        onPressed: _pickImage,
                         child: const Text('Escolher Foto de Perfil'),
                       ),
                       const SizedBox(height: 16),
@@ -230,10 +217,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: const Text('Cancelar'),
                           ),
                           ElevatedButton(
-                            onPressed: () async {
-                              await _insertUser(); // Inserir o usuário no banco de dados
-                            },
-                            child: const Text('Entrar'),
+                            onPressed: _insertUser, // Chama a função para cadastrar o usuário
+                            child: const Text('Cadastrar'),
                           ),
                         ],
                       ),
