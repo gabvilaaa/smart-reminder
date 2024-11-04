@@ -12,6 +12,7 @@ import 'screens/searchScreen.dart';
 
 void main() {
   runApp(const MyApp());
+  // runApp(const DeviceScreen());
 }
 
 class MyApp extends StatelessWidget {
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
       title: 'Reminders App',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: HomePageWidget(),
+      // home: DeviceScreen(),
     );
   }
 }
