@@ -96,5 +96,21 @@ class DatabaseHelper {
     // Retorna true se encontrar pelo menos um registro, caso contrário, false
     return results.isNotEmpty;
   }
+
+  Future<int> deleteUser(int id) async {
+    final db = await database;
+    return await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteReminder(int id) async {
+    final db = await database;
+    return await db.delete('reminders', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateUser(int id, Map<String, String> user) async {
+    final db = await database;
+    user['updated_at'] = DateTime.now().toString();
+    return await db.update('users', user, where: 'id = ?', whereArgs: [id]);
+  }
 }
 
