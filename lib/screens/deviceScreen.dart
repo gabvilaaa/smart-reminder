@@ -31,7 +31,7 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
   Esp espSalvo = Esp(name: "vazio", subtittle: "vazio");
   List<Esp> espAvaibles = [];
 
-  _recuperarDados() async {
+  Future _recuperarDados() async {
     String espName = "Vazio";
     String espSubtittle = "Vazio";
     final prefs = await SharedPreferences.getInstance();
@@ -42,24 +42,118 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
       Esp.getLastCode().asStream().listen((t) {
         tempInt = t;
         for (int i = 0; i <= tempInt; i++) {
-          if (prefs.containsKey("devices/esp$i/nome")) {
+          if (prefs.containsKey("devices/esp$i/nome") &&
+              prefs.getString("devices/esp$i/nome") != "0xVAZIO") {
             espName = prefs.getString("devices/esp$i/nome") ?? "Vazio";
             espSubtittle = prefs.getString("devices/esp$i/subtitle") ?? "Vazio";
 
             (espAvaibles.any((esp) => espSubtittle == esp.subtittle))
                 ? null
-                : espAvaibles.add(Esp(name: espName, subtittle: espSubtittle));
-
-            // if((espAvaibles.any((esp) => espSubtittle == esp.subtittle))){
-            //
-            // }else{
-            //   espAvaibles.add(Esp(name: espName, subtittle: espSubtittle));
-            //   print("Item adicionado com sucesso");
-            // }
+                : espAvaibles.add(Esp.conectado(
+                    name: espName,
+                    subtittle: espSubtittle,
+                    conectado: BluetoothDevice.fromId(espSubtittle).isConnected,
+                    code: i));
           }
         }
       });
     });
+  }
+
+  Future _deletarDados(int code) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString("devices/esp$code/nome", "0xVAZIO");
+    prefs.remove("devices/esp$code/subtitle");
+    setState(() {});
+  }
+
+  Future _updateDados(int code, String newName) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.remove("devices/esp$code/nome");
+    await prefs.setString("devices/esp$code/nome", newName);
+    setState(() {});
+  }
+
+  Widget _getExpansionTile(int index) {
+    return Card(
+        color: Colors.greenAccent,
+        child: ExpansionTile(
+          title: Text(espAvaibles[index].name),
+          subtitle: Text(espAvaibles[index].subtittle),
+          trailing: (espAvaibles[index].getStatusConection())
+              ? const Icon(Icons.check)
+              : const Icon(Icons.cancel_outlined),
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                (espAvaibles[index].getStatusConection())
+                    ? const Text("Conectado")
+                    : ElevatedButton(
+                        onPressed: () {
+                          try {
+                            setState(() {
+                              BluetoothDevice.fromId(
+                                      espAvaibles[index].subtittle)
+                                  .connect();
+                              espAvaibles[index].chageStatusConection();
+                            });
+                          } catch (e) {
+                            print("Erro encontrado $e");
+                          }
+                        },
+                        child: Text("Conectar")),
+                IconButton(
+                  onPressed: () {
+                    showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          String newName = "", newSub;
+                          return AlertDialog(
+
+                            content: Dialog(
+
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text("Novo nome: "),
+                                  TextField(
+                                    onChanged: (String text) {
+                                      setState(() {
+                                        newName = text;
+                                      });
+                                    },
+                                  ),
+                                  ElevatedButton(
+                                      onPressed: () {
+                                        _updateDados(
+                                            espAvaibles[index].code, newName);
+
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: Text("Salvar"))
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        );
+                  setState(() {
+
+                  });
+                  },
+                  icon: Icon(Icons.edit),
+                ),
+                IconButton(
+                    onPressed: () {
+                      _deletarDados(espAvaibles[index].code);
+                    },
+                    icon: Icon(Icons.delete))
+              ],
+            ),
+          ],
+        ));
   }
 
   @override
@@ -76,55 +170,9 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
           Column(
             children: List.generate(espAvaibles.length, (index) {
               return (espAvaibles.isNotEmpty)
-                  ? Card(
-                      color: Colors.greenAccent,
-
-                      child: ExpansionTile(
-                        title: Text(espAvaibles[index].name),
-                        subtitle: Text(espAvaibles[index].subtittle),
-                        trailing: (espAvaibles[index].getStatusConection())
-                            ? const Icon(Icons.check)
-                            : const Icon(Icons.cancel_outlined),
-                        dense: true,
-                        children: [
-                          (espAvaibles[index].getStatusConection())
-                              ? Text("Conectado")
-                              : ElevatedButton(
-                                  onPressed: () {
-                                    try {
-                                      BluetoothDevice.fromId(
-                                              espAvaibles[index].subtittle)
-                                          .connect();
-                                      espAvaibles[index].chageStatusConection();
-                                    } catch (e) {
-                                      print("Erro encontrado $e");
-                                    }
-                                    setState(() {});
-                                  },
-                                  child: Text("Conectar"))
-                        ],
-                      ),
-
-                      // child: ScanResultTile(result: espAvaibles[index]),
-                    )
+                  ? _getExpansionTile(index)
                   : Card();
-            }
-                //   return (results.isNotEmpty)
-                //       ? Card(
-                //     color: Colors.greenAccent,
-                //     child: ListTile(
-                //       title: Text(results[index].device.name.toString()),
-                //       subtitle: Text(results[index].rssi.toString()),
-                //       trailing: const Icon(Icons.check),
-                //       onTap: () {
-                //         // Navigate to episode details
-                //       },
-                //     ),
-                //   )
-                //       : Card();
-                // }
-
-                ),
+            }),
           )
         ],
       ),
@@ -134,7 +182,9 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
           showDialog(
             context: context,
             builder: (BuildContext context) {
-              return AddDevice();
+              return const AlertDialog(
+                content: AddDevice(),
+              );
             },
           );
         },
@@ -161,6 +211,7 @@ class _AddDeviceState extends State<AddDevice> {
   late List<ScanResult> results = [];
   late StreamSubscription<List<ScanResult>> _scanResultsSubscription;
   late StreamSubscription<bool> _isScanningSubscription;
+  StreamSubscription<BluetoothAdapterState>? _adapterStateSubscription;
   bool _isScanning = false;
 
   Future _requestBluetoothPermission() async {
@@ -197,12 +248,19 @@ class _AddDeviceState extends State<AddDevice> {
         setState(() {});
       }
     });
+
+    _adapterStateSubscription ??= FlutterBluePlus.adapterState.listen((state) {
+      if (state != BluetoothAdapterState.on) {
+        FlutterBluePlus.turnOn();
+      }
+    });
   }
 
   @override
   void dispose() {
     _scanResultsSubscription.cancel();
     _isScanningSubscription.cancel();
+
     super.dispose();
   }
 
@@ -235,6 +293,7 @@ class _AddDeviceState extends State<AddDevice> {
     return Dialog(
       child: SizedBox(
         height: 900,
+        width: 700,
         child: Padding(
           padding: EdgeInsets.all(16.0), // Adiciona padding ao conteúdo
           child: Column(
@@ -317,8 +376,15 @@ class Esp {
   final String name;
   final String subtittle;
   bool conectado = false;
+  int code = 0;
 
   Esp({required this.name, required this.subtittle});
+
+  Esp.conectado(
+      {required this.name,
+      required this.subtittle,
+      required this.conectado,
+      required this.code});
 
   static Future<int> getLastCode() async {
     final prefs = await SharedPreferences.getInstance();
