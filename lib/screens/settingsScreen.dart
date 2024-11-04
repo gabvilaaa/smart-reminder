@@ -18,15 +18,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String password = '';
   File? userProfileImage;
 
-  Future<void> _pickImage() async {
+  Future<File> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
       setState(() {
-        userProfileImage = File(image.path);
       });
+        return File(image.path);
+
     }
+    return File("");
   }
 
   Future<void> _insertUser() async {
@@ -58,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'profile_image': userProfileImage?.path ?? '',
       };
 
-      await DatabaseHelper().insertUser(0, user);
+      await DatabaseHelper().insertUser(user);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Usuário cadastrado com sucesso!')),
       );
