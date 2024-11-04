@@ -18,15 +18,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String password = '';
   File? userProfileImage;
 
-  Future<void> _pickImage() async {
+  Future<File> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
       setState(() {
-        userProfileImage = File(image.path);
       });
+        return File(image.path).absolute;
     }
+    return File("");
   }
 
   Future<void> _insertUser() async {
@@ -37,7 +38,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Erro'),
-            content: const Text('Um usuário com este e-mail já está cadastrado.'),
+            content:
+                const Text('Um usuário com este e-mail já está cadastrado.'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -65,6 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       Navigator.pop(context); // Fechar o pop-up após o cadastro
       setState(() {}); // Atualizar a tela
     }
+    print("Adicionou");
   }
 
   @override
@@ -79,7 +82,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-
           const Text(
             'User Account',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -87,7 +89,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 10),
           _buildUserProfile(context),
           const SizedBox(height: 20),
-
           const Text(
             'Settings Options',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -128,15 +129,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           radius: 25,
           backgroundImage: userProfileImage != null
               ? FileImage(userProfileImage!)
-              : NetworkImage('https://img.olympics.com/images/image/private/t_1-1_300/f_auto/v1687307644/primary/cqxzrctscdr8x47rly1g') as ImageProvider,
+              : NetworkImage(
+                      'https://img.olympics.com/images/image/private/t_1-1_300/f_auto/v1687307644/primary/cqxzrctscdr8x47rly1g')
+                  as ImageProvider,
         ),
-        title: Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title:
+            Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(userEmail),
         trailing: const Icon(Icons.edit),
         onTap: () {
           showDialog(
             context: context,
             builder: (BuildContext context) {
+              String newName="", newEmail="", newSurname="", newPass="";
+              File? newFile;
               return Dialog(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -163,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           border: OutlineInputBorder(),
                         ),
                         onChanged: (value) {
-                          userName = value;
+                          newName = value;
                         },
                       ),
                       const SizedBox(height: 12),
@@ -173,7 +179,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           border: OutlineInputBorder(),
                         ),
                         onChanged: (value) {
-                          userSurname = value;
+                          newSurname = value;
                         },
                       ),
                       const SizedBox(height: 12),
@@ -184,7 +190,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         keyboardType: TextInputType.emailAddress,
                         onChanged: (value) {
-                          userEmail = value;
+                          newEmail = value;
                         },
                       ),
                       const SizedBox(height: 12),
@@ -194,13 +200,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           border: OutlineInputBorder(),
                         ),
                         onChanged: (value) {
-                          password = value;
+                          newPass = value;
                         },
                         obscureText: true,
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _pickImage,
+                        onPressed: (){
+                          _pickImage().asStream().listen((r){
+                            newFile = r;
+                          });
+                        },
                         child: const Text('Escolher Foto de Perfil'),
                       ),
                       const SizedBox(height: 16),
@@ -209,7 +219,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           ElevatedButton(
                             onPressed: () {
-                              Navigator.pop(context); // Fechar o pop-up ao cancelar
+                              Navigator.pop(
+                                  context); // Fechar o pop-up ao cancelar
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.grey[400],
@@ -217,7 +228,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: const Text('Cancelar'),
                           ),
                           ElevatedButton(
-                            onPressed: _insertUser, // Chama a função para cadastrar o usuário
+                            onPressed: (){
+                              setState(() {
+                                userName = newName;
+                                userEmail = newEmail;
+                                userSurname = newSurname;
+                                password = newPass;
+                                userProfileImage = newFile;
+                                _insertUser();
+                              });
+                            },
+                            // Chama a função para cadastrar o usuário
                             child: const Text('Cadastrar'),
                           ),
                         ],
