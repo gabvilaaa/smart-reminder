@@ -6,11 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:projeto_reminder/widgets/scan_result_tile.dart';
 import 'dart:math';
 
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'scan_screen2.dart';
 
 class DeviceScreen extends StatefulWidget {
   final bool start;
@@ -24,8 +22,8 @@ class DeviceScreen extends StatefulWidget {
 class _CreateDeviceScreen extends State<DeviceScreen> {
   @override
   void initState() {
-    super.initState();
     _recuperarDados();
+    super.initState();
   }
 
   Esp espSalvo = Esp(name: "vazio", subtittle: "vazio");
@@ -110,9 +108,7 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
                         builder: (BuildContext context) {
                           String newName = "", newSub;
                           return AlertDialog(
-
                             content: Dialog(
-
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.min,
@@ -137,11 +133,11 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
                               ),
                             ),
                           );
-                        }
-                        );
-                  setState(() {
+                        }).whenComplete(() {
 
-                  });
+                      _recuperarDados();
+                      setState(() {});
+                    });
                   },
                   icon: Icon(Icons.edit),
                 ),
@@ -179,14 +175,19 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Show the AddDevice dialog when the button is pressed
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return const AlertDialog(
-                content: AddDevice(),
-              );
-            },
-          );
+          setState(() {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return const AlertDialog(
+                  content: AddDevice(),
+                );
+              },
+            ).whenComplete(() {
+              _recuperarDados();
+              setState(() {});
+            });
+          });
         },
         child: const Icon(Icons.add),
       ),
@@ -361,6 +362,8 @@ class _AddDeviceState extends State<AddDevice> {
                   if (espSelecionado.name != "vazio") {
                     espSelecionado.salvarEsp(apelido);
                   }
+                  setState(() {});
+                  Navigator.pop(context);
                 },
                 child: const Text("Salvar"),
               )
