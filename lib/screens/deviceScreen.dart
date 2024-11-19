@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:core';
 
 import 'package:flutter/material.dart';
@@ -6,9 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-import 'package:projeto_reminder/utils/esp.dart';
 import 'addDeviceScreen.dart';
-
+import 'package:projeto_reminder/utils/esp.dart';
 
 class DeviceScreen extends StatefulWidget {
   final bool start;
@@ -22,8 +20,8 @@ class DeviceScreen extends StatefulWidget {
 class _CreateDeviceScreen extends State<DeviceScreen> {
   @override
   void initState() {
-    _recuperarDados();
     super.initState();
+    _recuperarDados();
   }
 
   Esp espSalvo = Esp(name: "vazio", subtittle: "vazio");
@@ -34,6 +32,7 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
     String espSubtittle = "Vazio";
     final prefs = await SharedPreferences.getInstance();
     setState(() {
+      int i = 0;
       int tempInt = 0;
 
       Esp.getLastCode().asStream().listen((t) {
@@ -108,8 +107,7 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
                       showDialog(
                           context: context,
                           builder: (BuildContext context) {
-                            String newName = "";
-
+                            String newName = "", newSub;
                             return AlertDialog(
                               content: Dialog(
                                 child: Column(
@@ -137,9 +135,11 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
                               ),
                             );
                           }).whenComplete(() {
-                        _recuperarDados();
-                        setState(() {});
+                        Future.delayed(const Duration(milliseconds: 500))
+                            .whenComplete(() {});
                       });
+                      setState(() {});
+
                     });
                   },
                   icon: const Icon(Icons.edit),
@@ -180,16 +180,15 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Show the AddDevice dialog when the button is pressed
-          setState(() {
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return const AlertDialog(
-                  content: AddDevice(),
-                );
-              },
-            ).whenComplete(() {
-              _recuperarDados();
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return const AddDevice();
+            },
+          ).whenComplete(() {
+            _recuperarDados();
+
+            Future.delayed(const Duration(milliseconds: 500)).whenComplete(() {
               setState(() {});
             });
           });
