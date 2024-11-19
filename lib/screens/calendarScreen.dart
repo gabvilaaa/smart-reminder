@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'dart:math';
+
+import 'package:googleapis/calendar/v3.dart' as calendar;
+import 'package:googleapis_auth/googleapis_auth.dart' as auth;
+import 'package:google_sign_in/google_sign_in.dart';
 
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({super.key});
