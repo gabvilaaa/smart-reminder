@@ -19,7 +19,7 @@ class AddDevice extends StatefulWidget {
 class _AddDeviceState extends State<AddDevice> {
   List<Esp> devices = [];
   Esp espSelecionado = Esp(name: "name", subtittle: "subtittle");
-  BluetoothAdapterState _adapterState = BluetoothAdapterState.unknown;
+  final BluetoothAdapterState _adapterState = BluetoothAdapterState.unknown;
   late StreamSubscription<BluetoothAdapterState> _adapterStateStateSubscription;
 
   late List<ScanResult> results = [];
@@ -39,7 +39,15 @@ class _AddDeviceState extends State<AddDevice> {
         Permission.bluetoothScan,
         Permission.location,
       ].request();
-    } else {}
+    }
+  }
+
+  Future _connectBlue() async{
+
+    if(FlutterBluePlus.adapterStateNow == BluetoothAdapterState.off){
+      await FlutterBluePlus.turnOn();
+    }
+
   }
 
   @override
@@ -49,6 +57,8 @@ class _AddDeviceState extends State<AddDevice> {
       setState(() {});
     });
     _requestBluetoothPermission();
+
+    _connectBlue();
 
     _scanResultsSubscription =
         FlutterBluePlus.scanResults.listen((tempResults) {
