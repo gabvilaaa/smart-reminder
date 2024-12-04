@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:googleapis/calendar/v3.dart' as GoogleAPI;
+import 'package:http/io_client.dart' show IOClient, IOStreamedResponse;
+import 'package:http/http.dart' show BaseRequest, Response;
+import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,307 +15,166 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Reminders App',
-      home: HomePageWidget(),
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: const MyHomePage(),
     );
   }
 }
 
-class HomePageWidget extends StatefulWidget {
-  const HomePageWidget({
-    super.key,
-    this.drawerOn = false,
-    this.addingDevice = false,
-  });
-
-  final bool drawerOn;
-  final bool addingDevice;
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
 
   @override
-  State<HomePageWidget> createState() => _HomePageWidgetState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _HomePageWidgetState extends State<HomePageWidget> {
-  final scaffoldKey = GlobalKey<ScaffoldState>();
-  SnakeBarBehaviour snakeBarStyle = SnakeBarBehaviour.floating;
-  EdgeInsets padding = const EdgeInsets.all(12);
-  final BorderRadius _borderRadius = const BorderRadius.only(
-    topLeft: Radius.circular(25),
-    topRight: Radius.circular(25),
+class _MyHomePageState extends State<MyHomePage> {
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: "588397622893-v49pc7lmsgg49977932i4c9j80ro494u.apps.googleusercontent.com",
+    scopes: <String>[GoogleAPI.CalendarApi.calendarScope],
   );
-  ShapeBorder? bottomBarShape = const RoundedRectangleBorder(
-    borderRadius: BorderRadius.all(Radius.circular(25)),
-  );
-  int _selectedItemPosition = 2;
-  SnakeShape snakeShape = SnakeShape.circle;
 
-  bool showSelectedLabels = false;
-  bool showUnselectedLabels = false;
-
-  Color selectedColor = Colors.black;
-  Color unselectedColor = Colors.blueGrey;
-
-  Gradient selectedGradient =
-  const LinearGradient(colors: [Colors.red, Colors.amber]);
-  Gradient unselectedGradient =
-  const LinearGradient(colors: [Colors.red, Colors.blueGrey]);
-  Color? containerColor;
-  List<Color> containerColors = [
-    const Color(0xFFFDE1D7),
-    const Color(0xFFE4EDF5),
-    const Color(0xFFE7EEED),
-    const Color(0xFFF4E4CE),
-  ];
+  GoogleSignInAccount? _currentUser;
 
   @override
   void initState() {
     super.initState();
-    SchedulerBinding.instance.addPostFrameCallback((_) async {
-      if (widget.drawerOn) {
-        scaffoldKey.currentState?.openDrawer();
+    _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
+      setState(() {
+        _currentUser = account;
+      });
+      if (_currentUser != null) {
+        //getGoogleEventsData();
       }
     });
+    _googleSignIn.signInSilently();
+  }
+
+  Future<List<GoogleAPI.Event>> getGoogleEventsData() async {
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+    final GoogleAPIClient httpClient =
+    GoogleAPIClient(await googleUser!.authHeaders);
+
+    final GoogleAPI.CalendarApi calendarApi = GoogleAPI.CalendarApi(httpClient);
+    final GoogleAPI.Events calEvents = await calendarApi.events.list(
+      "primary",
+    );
+    final List<GoogleAPI.Event> appointments = <GoogleAPI.Event>[];
+    if (calEvents.items != null) {
+      for (int i = 0; i < calEvents.items!.length; i++) {
+        final GoogleAPI.Event event = calEvents.items![i];
+        if (event.start == null) {
+          continue;
+        }
+        appointments.add(event);
+      }
+    }
+
+    return appointments;
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        bottomNavigationBar: SnakeNavigationBar.color(
-          behaviour: snakeBarStyle,
-          snakeShape: snakeShape,
-          shape: bottomBarShape,
-          padding: padding,
-
-          ///configuration for SnakeNavigationBar.color
-          snakeViewColor: selectedColor,
-          selectedItemColor:
-          snakeShape == SnakeShape.indicator ? selectedColor : null,
-          unselectedItemColor: unselectedColor,
-
-          ///configuration for SnakeNavigationBar.gradient
-          //snakeViewGradient: selectedGradient,
-          //selectedItemGradient: snakeShape == SnakeShape.indicator ? selectedGradient : null,
-          //unselectedItemGradient: unselectedGradient,
-
-          showUnselectedLabels: false,
-          showSelectedLabels: false,
-
-          currentIndex: _selectedItemPosition,
-          onTap: (index) {
-            setState(() => _selectedItemPosition = index);
-            _onPageChanged(index);
-          },
-          items: [
-            BottomNavigationBarItem(
-                icon: Icon(Icons.settings), label: 'tickets'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.calendar_month), label: 'calendar'),
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'home'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.podcasts), label: 'microphone'),
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'search')
-          ],
-        ),
-        key: scaffoldKey,
-        backgroundColor: const Color.fromRGBO(255, 255, 255, 1),
-        drawer: _buildDrawer(context),
-        body: SafeArea(
-          child: _buildBody(context),
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Event Calendar'),
+      ),
+      body: FutureBuilder(
+        future: getGoogleEventsData(),
+        builder: (BuildContext context, AsyncSnapshot snapshot) {
+          return Stack(
+            children: [
+              SfCalendar(
+                view: CalendarView.month,
+                initialDisplayDate: DateTime(2024, 11, 25, 9, 0, 0),
+                dataSource: GoogleDataSource(events: snapshot.data),
+                monthViewSettings: const MonthViewSettings(
+                    appointmentDisplayMode:
+                    MonthAppointmentDisplayMode.appointment),
+              ),
+              snapshot.data != null
+                  ? Container()
+                  : const Center(
+                child: CircularProgressIndicator(),
+              )
+            ],
+          );
+        },
       ),
     );
   }
 
-  void _onPageChanged(int page) {
-    containerColor = containerColors[page];
-    switch (page) {
-      case 0:
-        scaffoldKey.currentState?.openDrawer();
-        break;
+  @override
+  void dispose() {
+    if (_googleSignIn.currentUser != null) {
+      _googleSignIn.disconnect();
+      _googleSignIn.signOut();
     }
-  }
 
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF9692A5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            IconButton(
-              icon:
-              const Icon(Icons.menu_rounded, color: Colors.white, size: 40),
-              onPressed: () => scaffoldKey.currentState?.openDrawer(),
-            ),
-            Expanded(
-              child: Text(
-                'Smart Reminders',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 27,
-                  color: Color.fromRGBO(255, 255, 255, 1),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    super.dispose();
   }
 }
 
-Widget _buildDrawer(BuildContext context) {
-  return Drawer(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          _buildUserProfile(context),
-          Expanded(
-            child: ListView(
-              children: [
-                _buildDrawerItem(Icons.settings_outlined, 'Settings', context),
-                _buildDrawerItem(Icons.help_outline_sharp, 'Help', context),
-                _buildDrawerItem(Icons.add, 'Add device', context),
-                _buildDrawerItem(Icons.border_color, 'Add Reminder', context),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
+class GoogleDataSource extends CalendarDataSource {
+  GoogleDataSource({required List<GoogleAPI.Event>? events}) {
+    appointments = events;
+  }
+
+  @override
+  DateTime getStartTime(int index) {
+    final GoogleAPI.Event event = appointments![index];
+    return event.start?.date ?? event.start!.dateTime!.toLocal();
+  }
+
+  @override
+  bool isAllDay(int index) {
+    return appointments![index].start.date != null;
+  }
+
+  @override
+  DateTime getEndTime(int index) {
+    final GoogleAPI.Event event = appointments![index];
+    return event.endTimeUnspecified != null && event.endTimeUnspecified!
+        ? (event.start?.date ?? event.start!.dateTime!.toLocal())
+        : (event.end?.date != null
+        ? event.end!.date!.add(const Duration(days: -1))
+        : event.end!.dateTime!.toLocal());
+  }
+
+  @override
+  String getLocation(int index) {
+    return appointments![index].location ?? '';
+  }
+
+  @override
+  String getNotes(int index) {
+    return appointments![index].description ?? '';
+  }
+
+  @override
+  String getSubject(int index) {
+    final GoogleAPI.Event event = appointments![index];
+    return event.summary == null || event.summary!.isEmpty
+        ? 'No Title'
+        : event.summary!;
+  }
 }
 
-Widget _buildUserProfile(BuildContext context) {
-  return const Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [
-      CircleAvatar(
-        radius: 40,
-        backgroundImage: NetworkImage('https://picsum.photos/seed/641/600'),
-      ),
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'User template name',
-            style: TextStyle(
-              fontFamily: 'Roboto',
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Text(
-            'username@gmail.com',
-            style: TextStyle(
-              fontFamily: 'Inter',
-            ),
-          ),
-        ],
-      ),
-    ],
-  );
-}
+class GoogleAPIClient extends IOClient {
+  final Map<String, String> _headers;
 
-Widget _buildDrawerItem(IconData icon, String title, BuildContext context) {
-  return Padding(
-    padding: const EdgeInsets.all(8.0),
-    child: Row(
-      children: [
-        Icon(icon, size: 30, color: Colors.black),
-        const SizedBox(width: 20),
-        Text(
-          title,
-          style: TextStyle(
-            fontFamily: 'Inter',
-          ),
-        ),
-      ],
-    ),
-  );
-}
+  GoogleAPIClient(this._headers) : super();
 
-Widget _buildBody(BuildContext context) {
-  return Stack(
-    children: [
-      Column(
-        children: [
-          // _buildHeader(context),
-          _buildContent(context),
-        ],
-      ),
-    ],
-  );
-}
+  @override
+  Future<IOStreamedResponse> send(BaseRequest request) =>
+      super.send(request..headers.addAll(_headers));
 
-Widget _buildContent(BuildContext context) {
-  return Expanded(
-    child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: FractionallySizedBox(
-          widthFactor: 0.9,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Color.fromRGBO(241, 241, 241, 1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  const Text(
-                    'Manage your device',
-                    style: TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  FloatingActionButton.large(
-                    backgroundColor: Color.fromRGBO(255, 255, 255, 1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                    ),
-                    onPressed: () {
-                      // if (!widget.addingDevice) {
-                      //   // Lógica de adicionar dispositivo
-                      // }
-                    },
-                    child: const SizedBox(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.add,
-                            size: 20,
-                          ),
-                          Text(
-                            'Add',
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              color: Colors.black,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        )),
-  );
+  @override
+  Future<Response> head(Uri url, {Map<String, String>? headers}) =>
+      super.head(url,
+          headers: (headers != null ? (headers..addAll(_headers)) : headers));
 }
