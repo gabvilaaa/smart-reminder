@@ -99,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (index == null) {
                       // Adicionar novo lembrete ao banco de dados
                       DatabaseHelper().insertReminder(newReminder);
-
+                      print("dados: ${DatabaseHelper().getReminders()}");
                       reminders.add(newReminder); // Atualizar lista local
                     } else {
                       // Atualizar lembrete existente
