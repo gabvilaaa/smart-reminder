@@ -6,11 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:projeto_reminder/widgets/scan_result_tile.dart';
+//import 'package:projeto_reminder/widgets/scan_result_tile.dart';
 import 'dart:math';
 
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'scan_screen2.dart';
+//import 'scan_screen2.dart';
 
 class DeviceScreen extends StatefulWidget {
   final bool start;
