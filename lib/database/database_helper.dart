@@ -45,6 +45,7 @@ class DatabaseHelper {
       profile_image TEXT,
       created_at TEXT,
       updated_at TEXT
+      
     )
   ''');
   }
