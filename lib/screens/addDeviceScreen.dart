@@ -17,7 +17,6 @@ class AddDevice extends StatefulWidget {
 }
 
 class _AddDeviceState extends State<AddDevice> {
-  List<Esp> devices = [];
   Esp espSelecionado = Esp(name: "name", subtittle: "subtittle");
   final BluetoothAdapterState _adapterState = BluetoothAdapterState.unknown;
   late StreamSubscription<BluetoothAdapterState> _adapterStateStateSubscription;

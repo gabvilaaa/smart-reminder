@@ -1,7 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class Esp {
+import 'ProviderStore.dart';
+//
+class Esp{
   final String name;
   final String subtittle;
   bool conectado = false;
@@ -29,9 +33,6 @@ class Esp {
       subtittle: temp.device.remoteId.toString(),
     );
   }
-
-  static Esp fromJson(json) =>
-      Esp(name: json['name'], subtittle: json['subtittle']);
 
   void salvarEsp(String nickName) async {
     int tempInt = 0;
@@ -70,4 +71,35 @@ class Esp {
 
   @override
   int get hashCode => name.hashCode ^ subtittle.hashCode;
+}
+
+Future recuperarDados(BuildContext context) async {
+  String espName = "Vazio";
+  String espSubtittle = "Vazio";
+  final prefs = await SharedPreferences.getInstance();
+
+  int i = 0;
+  int tempInt = 0;
+
+  Esp.getLastCode().asStream().listen((t) {
+    tempInt = t;
+    for (int i = 0; i <= tempInt; i++) {
+      if (prefs.containsKey("devices/esp$i/nome") &&
+          prefs.getString("devices/esp$i/nome") != "0xVAZIO") {
+        espName = prefs.getString("devices/esp$i/nome") ?? "Vazio";
+        espSubtittle = prefs.getString("devices/esp$i/subtitle") ?? "Vazio";
+
+        (context.read<LoadedEsps>().device.any((esp) => espSubtittle == esp.subtittle))
+            ? null
+            : context.read<LoadedEsps>().addDevices(Esp.conectado(
+            name: espName,
+            subtittle: espSubtittle,
+            conectado: BluetoothDevice
+                .fromId(espSubtittle)
+                .isConnected,
+            code: i));
+      }
+    }
+  });
+
 }

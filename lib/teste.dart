@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
+
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
-import 'package:sqflite/sqflite.dart';
-import 'dart:async';
+import 'package:projeto_reminder/utils/esp.dart';
+import 'package:provider/provider.dart';
 
 import 'screens/settingsScreen.dart';
 import 'screens/calendarScreen.dart';
 import 'screens/deviceScreen.dart';
 import 'screens/homeScreen.dart';
 import 'screens/searchScreen.dart';
+import 'utils/ProviderStore.dart';
+
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+      MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => LoadedEsps()),
+          ],
+      child: const MyApp()
+      )
+  );
   // runApp(const DeviceScreen());
 }
 
@@ -20,6 +29,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    recuperarDados(context);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Reminders App',
