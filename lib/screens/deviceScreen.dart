@@ -20,60 +20,85 @@ class DeviceScreen extends StatefulWidget {
 }
 
 class _CreateDeviceScreen extends State<DeviceScreen> {
+  Esp espSalvo = Esp("vazio", "vazio");
+
+  List<Esp> espAvaibles = [Esp("NAD", "NADA")];
+
   @override
   void initState() {
     super.initState();
     recuperarDados(context);
   }
 
-  Esp espSalvo = Esp(name: "vazio", subtittle: "vazio");
-  // List<Esp> espAvaibles = [];
-
-
+  @override
+  void didChangeDependencies() async {
+    espAvaibles = context.watch<LoadedEsps>().device;
+    super.didChangeDependencies();
+  }
 
   Future _deletarDados(int code) async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString("devices/esp$code/nome", "0xVAZIO");
-    prefs.remove("devices/esp$code/subtitle");
-    setState(() {});
+    (BluetoothDevice.fromId(
+                prefs.getString("devices/esp$code/subtitle").toString())
+            .isConnected)
+        ? BluetoothDevice.fromId(
+                prefs.getString("devices/esp$code/subtitle").toString())
+            .disconnect()
+        : null;
+    Future.delayed(const Duration(milliseconds: 500));
+    await prefs.setString("devices/esp$code/nome", "0xVAZIO");
+    await prefs.remove("devices/esp$code/subtitle").whenComplete(() {
+      recuperarDados(context);
+      Future.delayed(const Duration(milliseconds: 500)).whenComplete(() {
+        setState(() {});
+      });
+    });
   }
 
   Future _updateDados(int code, String newName) async {
     final prefs = await SharedPreferences.getInstance();
     prefs.remove("devices/esp$code/nome");
-    await prefs.setString("devices/esp$code/nome", newName);
-    setState(() {});
+    await prefs.setString("devices/esp$code/nome", newName).whenComplete(() {
+      recuperarDados(context);
+      Future.delayed(const Duration(milliseconds: 500)).whenComplete(() {
+        setState(() {});
+      });
+    });
   }
 
-  Widget _getExpansionTile(int index) {
+  Widget _conectDevice(Esp esp) {
+
+    if (esp.getStatusConection()) {
+      return const Icon(Icons.check);
+    } 
+    else {
+      try {
+        esp.connectBluetooth(context).whenComplete((){
+          print("Conectado");
+        context.read<LoadedEsps>().update();
+
+        });
+        return const Icon(Icons.downloading);
+      } catch (e) {
+        return const Icon(Icons.cancel_outlined);
+      }
+    }
+    // else if( statusConexao == BluetoothConnectionState.connecting){
+    //   return const Icon(Icons.downloading);
+    // }
+  }
+
+  Widget _getExpansionTile(int index, VoidCallback onUpdate) {
     return Card(
         color: Colors.greenAccent,
         child: ExpansionTile(
-          title: Text(context.read<LoadedEsps>().device[index].name),
-          subtitle: Text(context.read<LoadedEsps>().device[index].subtittle),
-          trailing: (context.read<LoadedEsps>().device[index].getStatusConection())
-              ? const Icon(Icons.check)
-              : const Icon(Icons.cancel_outlined),
+          title: Text(espAvaibles[index].name),
+          subtitle: Text(espAvaibles[index].subtittle),
+          trailing: _conectDevice(espAvaibles[index]),
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                (context.read<LoadedEsps>().device[index].getStatusConection())
-                    ? const Text("Conectado")
-                    : ElevatedButton(
-                    onPressed: () {
-                      try {
-                        setState(() {
-                          BluetoothDevice.fromId(
-                              context.read<LoadedEsps>().device[index].subtittle)
-                              .connect();
-                          context.read<LoadedEsps>().device[index].chageStatusConection();
-                        });
-                      } catch (e) {
-                        print("Erro encontrado $e");
-                      }
-                    },
-                    child: Text("Conectar")),
                 IconButton(
                   onPressed: () {
                     setState(() {
@@ -98,7 +123,19 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
                                     ElevatedButton(
                                         onPressed: () {
                                           _updateDados(
-                                              context.read<LoadedEsps>().device[index].code, newName);
+                                              context
+                                                  .read<LoadedEsps>()
+                                                  .device[index]
+                                                  .code,
+                                              newName);
+                                          setState(() {
+                                            Future.delayed(const Duration(
+                                                    milliseconds: 500))
+                                                .whenComplete(() {
+                                              // recuperarDados(context);
+                                            });
+                                          });
+                                          onUpdate();
 
                                           Navigator.of(context).pop();
                                         },
@@ -112,15 +149,22 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
                             .whenComplete(() {});
                       });
                       setState(() {});
-
                     });
                   },
                   icon: const Icon(Icons.edit),
                 ),
                 IconButton(
                     onPressed: () async {
-                      await _deletarDados(context.read<LoadedEsps>().device[index].code);
+                      await _deletarDados(espAvaibles[index].code);
                       await recuperarDados(context);
+                      setState(() {
+                        recuperarDados(context);
+                        Future.delayed(const Duration(milliseconds: 500))
+                            .whenComplete(() {
+                          setState(() {});
+                        });
+                      });
+                      onUpdate();
                     },
                     icon: const Icon(Icons.delete))
               ],
@@ -141,10 +185,14 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
           ),
           const SizedBox(height: 20),
           Column(
-            children: List.generate(context.read<LoadedEsps>().device.length, (index) {
-
-              return ((context.read<LoadedEsps>().device.isNotEmpty)
-                  ? _getExpansionTile(index)
+            children: List.generate(espAvaibles.length, (index) {
+              print(espAvaibles.length);
+              return ((espAvaibles.isNotEmpty)
+                  ? _getExpansionTile(index, () {
+                      setState(() {
+                        print("Atualizando estado para o item $index");
+                      });
+                    })
                   : const Card());
             }),
           )

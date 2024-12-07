@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
+
   factory DatabaseHelper() => _instance;
   static Database? _database;
 
@@ -16,15 +17,11 @@ class DatabaseHelper {
 
   Future<Database> _initDB() async {
     String path = join(await getDatabasesPath(), 'reminders.db');
-    return await openDatabase(
-      path,
-      version: 2,
-      onCreate: _onCreate
-    );
+    return await openDatabase(path, version: 2, onCreate: _onCreate);
   }
 
   Future<void> _onCreate(Database db, int version) async {
-  await db.execute('''
+    await db.execute('''
     CREATE TABLE reminders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT,
@@ -35,7 +32,7 @@ class DatabaseHelper {
     )
   ''');
 
-  await db.execute('''
+    await db.execute('''
     CREATE TABLE users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
@@ -60,7 +57,22 @@ class DatabaseHelper {
   Future<int> updateReminder(int id, Map<String, String> reminder) async {
     final db = await database;
     reminder['updatedAt'] = DateTime.now().toString();
-    return await db.update('reminders', reminder, where: 'id = ?', whereArgs: [id]);
+    return await db
+        .update('reminders', reminder, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future clearPastReminders() async{
+    final db = await database;
+    // print("Downloads");
+    // db.query('reminders', columns: ['date']).asStream().listen((data){
+    //   for (var row in data) {
+    //     final dateValue = row['date']; // Acessa o valor da coluna 'date'
+    //
+    //     // Faça algo com `dateValue`
+    //     print('Data encontrada: $dateValue');
+    //   }
+    //
+    // });
   }
 
   Future<List<Map<String, dynamic>>> getReminders() async {
@@ -115,4 +127,3 @@ class DatabaseHelper {
     return await db.update('users', user, where: 'id = ?', whereArgs: [id]);
   }
 }
-
