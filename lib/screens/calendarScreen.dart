@@ -8,6 +8,7 @@ import 'package:http/io_client.dart' show IOClient, IOStreamedResponse;
 import 'package:http/http.dart' show BaseRequest, Response;
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
+/*
 class CalendarScreen extends StatefulWidget{
   const CalendarScreen({super.key});
   @override
@@ -233,3 +234,82 @@ class GoogleAPIClient extends IOClient {
       super.head(url,
           headers: (headers != null ? (headers..addAll(_headers)) : headers));
 }
+*/
+import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
+import '../database/database_helper.dart'; // Importando o helper para buscar lembretes
+
+class CalendarScreen extends StatefulWidget {
+  const CalendarScreen({super.key});
+
+  @override
+  _CalendarScreenState createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends State<CalendarScreen> {
+  Map<DateTime, List<Map<String, dynamic>>> _events = {}; // Eventos por data
+  DateTime _selectedDay = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEvents(); // Carregar eventos ao iniciar
+  }
+
+  Future<void> _loadEvents() async {
+    List<Map<String, dynamic>> reminders = await DatabaseHelper().getReminders();
+    Map<DateTime, List<Map<String, dynamic>>> events = {};
+    for (var reminder in reminders) {
+      DateTime reminderDate = DateTime.parse(reminder['date']);
+      if (events[reminderDate] == null) {
+        events[reminderDate] = [];
+      }
+      events[reminderDate]!.add(reminder);
+    }
+    setState(() {
+      _events = events;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Calendar'),
+      ),
+      body: Column(
+        children: [
+          TableCalendar(
+            focusedDay: _selectedDay,
+            firstDay: DateTime.utc(2000, 01, 01),
+            lastDay: DateTime.utc(2101, 12, 31),
+            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _selectedDay = selectedDay;
+              });
+            },
+            eventLoader: (day) {
+              return _events[day] ?? [];
+            },
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _events[_selectedDay]?.length ?? 0,
+              itemBuilder: (context, index) {
+                var reminder = _events[_selectedDay]?[index];
+                return Card(
+                  child: ListTile(
+                    title: Text(reminder?['title'] ?? 'No Title'),
+                    subtitle: Text(reminder?['description'] ?? 'No Description'),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
