@@ -99,15 +99,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     FloatingActionButton(
 
                       child: const Text("Salvar Lembretes"),
-                        onPressed: (){
+                        onPressed: () async {
                         setState(() {
 
                         });
                           for(int i=0;i<valuesLocal.length;i++){
                             if(valuesLocal[i]){
+                              reminders = await DatabaseHelper().getReminders();
                               print("Status conexão: ${espAvaibles[i].getStatusConection()}");
                               print ("Characteristic encontrado ${espAvaibles[i].characteristic?.uuid.toString()}");
-                              espAvaibles[i].writeListText("newReminder", ["teste", "testando"], "@", context);
+                              espAvaibles[i].writeListText("newReminder", [reminders[i]['title'], reminders[i]['description'], reminders[i]['date']], "@", context);
                             }
                           }
                         })
