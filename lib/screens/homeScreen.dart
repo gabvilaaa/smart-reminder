@@ -21,16 +21,17 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> reminders = List.empty(growable: true);
-  List<bool> valuesLocal = [];
-  List<Esp> espAvaibles = [];
+  late List<bool> valuesLocal ;
+  late List<Esp> espAvaibles=[];
 
 
   @override
   void initState() {
     super.initState();
-    recuperarDados(context).whenComplete((){
+    espAvaibles.isEmpty?recuperarDados(context).whenComplete((){
       context.read<LoadedEsps>().valuesCreate();
-    });
+    }):null;
+
     _loadReminders();
 
   }
@@ -59,7 +60,6 @@ class _HomeScreenState extends State<HomeScreen> {
         context: context,
         builder: (BuildContext mainContex) {
           return Dialog(
-
             insetPadding: const EdgeInsets.all(30),
             child: SizedBox(
                 height: 550,
@@ -82,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   title: Text(espAvaibles[index]
                                       .name),
                                   subtitle: Text(
-                                      "Status: ${(espAvaibles[index].getStatusConection())?"Conectado":"Desconectado"} \n"
+                                      "Status: ${(espAvaibles[index].getStatusConection()??false)?"Conectado":"Desconectado"} \n"
                                           "ID: ${espAvaibles[index].subtittle}"),
                                   value: context.watch<LoadedEsps>().values[index],
                                   onChanged: (bool? value) {
@@ -97,11 +97,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 10),
                     FloatingActionButton(
+
                       child: const Text("Salvar Lembretes"),
                         onPressed: (){
+                        setState(() {
 
+                        });
                           for(int i=0;i<valuesLocal.length;i++){
                             if(valuesLocal[i]){
+                              print("Status conexão: ${espAvaibles[i].getStatusConection()}");
+                              print ("Characteristic encontrado ${espAvaibles[i].characteristic?.uuid.toString()}");
                               espAvaibles[i].writeListText("newReminder", ["teste", "testando"], "@", context);
                             }
                           }

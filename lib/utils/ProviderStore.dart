@@ -25,10 +25,20 @@ class LoadedEsps with ChangeNotifier{
     this.device.add(d);
     notifyListeners();
   }
+
+  connectDevice(int index, BuildContext context){
+    device[index].connectBluetooth(context).whenComplete((){
+    notifyListeners();
+
+    });
+    notifyListeners();
+  }
+
   clearList(){
     device.clear();
     notifyListeners();
   }
+
   updateDevice(Esp old, Esp ne) {
     final index = this.device.indexOf(old);
     if (index != -1) {

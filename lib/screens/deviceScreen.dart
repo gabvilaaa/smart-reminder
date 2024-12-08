@@ -66,18 +66,18 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
     });
   }
 
-  Widget _conectDevice(Esp esp) {
+  Widget _conectDevice(int index) {
 
-    if (esp.getStatusConection()) {
+    if (context.read<LoadedEsps>().device[index].getStatusConection()) {
       return const Icon(Icons.check);
     } 
     else {
       try {
-        esp.connectBluetooth(context).whenComplete((){
-          print("Conectado");
-        context.read<LoadedEsps>().update();
+        context.read<LoadedEsps>().device[index].connectBluetooth(context).whenComplete((){
+          context.read<LoadedEsps>().update();
 
         });
+        // context.read<LoadedEsps>().connectDevice(index, context);
         return const Icon(Icons.downloading);
       } catch (e) {
         return const Icon(Icons.cancel_outlined);
@@ -94,7 +94,7 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
         child: ExpansionTile(
           title: Text(espAvaibles[index].name),
           subtitle: Text(espAvaibles[index].subtittle),
-          trailing: _conectDevice(espAvaibles[index]),
+          trailing: _conectDevice(index),
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -186,11 +186,11 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
           const SizedBox(height: 20),
           Column(
             children: List.generate(espAvaibles.length, (index) {
-              print(espAvaibles.length);
+
               return ((espAvaibles.isNotEmpty)
                   ? _getExpansionTile(index, () {
                       setState(() {
-                        print("Atualizando estado para o item $index");
+
                       });
                     })
                   : const Card());

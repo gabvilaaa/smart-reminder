@@ -9,7 +9,7 @@ import 'ProviderStore.dart';
 class Esp{
   late final String name;
   late final String subtittle;
-  late BluetoothDevice _localDevice;
+  BluetoothDevice _localDevice = BluetoothDevice.fromId("remoteId");
   bool conectado = false;
   int code = 0;
   BluetoothCharacteristic? characteristic;
@@ -19,13 +19,16 @@ class Esp{
   //     : _localDevice = BluetoothDevice.fromId(subtittle);
   Esp(String nam, String sub){
     this.name = nam; this.subtittle = sub;
+    _localDevice= BluetoothDevice.fromId(this.subtittle);
   }
 
-  Esp.conectado(
-      {required this.name,
-        required this.subtittle,
-        required this.conectado,
-        required this.code});
+  Esp.conectado(String n, String s, bool c, int co){
+    this.name =n ;
+    this.subtittle = s;
+    this.conectado = c;
+    this.code= co;
+    _localDevice= BluetoothDevice.fromId(this.subtittle);
+  }
 
   static Future<int> getLastCode() async {
     final prefs = await SharedPreferences.getInstance();
@@ -66,12 +69,16 @@ class Esp{
   }
 
   bool getStatusConection() {
-    _localDevice = BluetoothDevice.fromId(subtittle);
+    // _localDevice ?? BluetoothDevice.fromId(subtittle);
+    // _localDevice.connectionState.listen((data){
+    //   return data;
+    // });
+
     return _localDevice.isConnected;
   }
 
   BluetoothConnectionState getConectionState(){
-    _localDevice = BluetoothDevice.fromId(subtittle);
+    // _localDevice ?? BluetoothDevice.fromId(subtittle);
     dynamic temp;
     _localDevice.connectionState.listen((data){
       temp = data;
@@ -80,6 +87,8 @@ class Esp{
   }
 
   Future writeText(String indicador,String text, BuildContext context) async {
+    characteristic??getServices();
+    Future.delayed(const Duration(milliseconds: 1000));
     try {
       await characteristic?.write(indicador.codeUnits+text.codeUnits);
     } catch (e) {
@@ -94,31 +103,44 @@ class Esp{
   Future writeListText(String indicador, List<String> text,String caracterSep, BuildContext context) async {
     text.insert(0, indicador);
     String code = text.join(caracterSep).toString();
+    characteristic??getServices().whenComplete(() async {
+      try {
+        await characteristic?.write(code.codeUnits);
+      } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Falha ao enviar texto!')),
+      );
+      throw e;
+      }
+    });
+
 
     try {
       await characteristic?.write(code.codeUnits);
+      print("Data enviado ${code.codeUnits}");
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Falha ao enviar texto!')),
       );
       throw e;
     }
-    print("Data enviado ${code.codeUnits}");
+
   }
 
-
   Future getServices() async {
-    _localDevice = BluetoothDevice.fromId(subtittle);
+    // _localDevice ??BluetoothDevice.fromId(subtittle);
+
+
     try {
-      await _localDevice.clearGattCache();
-      services = await _localDevice.discoverServices(timeout: 5000);
+        await _localDevice.clearGattCache();
+        services = (await _localDevice.discoverServices(timeout: 5000));
     } catch (e) {
       print("Erro encontrado: " + e.toString());
     }
     for (BluetoothService service in services) {
       for (BluetoothCharacteristic c in service.characteristics) {
-        if (c.uuid.toString() == "6a1981ae-6033-456a-88a9-a0d6b3eab72f") {
-          // UUID correto
+        if (c.properties.write) {
+          print("Characteristic encontrado: ${c.uuid.toString()}");
           characteristic = c;
           break;
         }
@@ -131,15 +153,18 @@ class Esp{
   }
 
   Future<void> connectBluetooth(BuildContext context) async {
-    _localDevice = BluetoothDevice.fromId(subtittle);
+    // _localDevice ?? BluetoothDevice.fromId(subtittle);
     try {
-      await _localDevice.connect().whenComplete;
+      await _localDevice.connect().whenComplete((){
+        print("Realmente Conectado");
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Falha ao enviar texto!')),
       );
     }
-    await getServices();
+    characteristic??await getServices();
+
   }
 
   @override
@@ -174,12 +199,12 @@ Future recuperarDados(BuildContext context) async {
         (context.read<LoadedEsps>().device.any((esp) => espSubtittle == esp.subtittle))
             ? null
             : context.read<LoadedEsps>().addDevices(Esp.conectado(
-            name: espName,
-            subtittle: espSubtittle,
-            conectado: BluetoothDevice
+             espName,
+             espSubtittle,
+             BluetoothDevice
                 .fromId(espSubtittle)
                 .isConnected,
-            code: i));
+             i));
         for(Esp e in context.read<LoadedEsps>().device)
         print("Elemento atualizado ${e.name}");
       }
