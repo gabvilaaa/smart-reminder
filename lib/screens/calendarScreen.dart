@@ -260,7 +260,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     List<Map<String, dynamic>> reminders = await DatabaseHelper().getReminders();
     Map<DateTime, List<Map<String, dynamic>>> events = {};
     for (var reminder in reminders) {
-      DateTime reminderDate = DateTime.parse(reminder['date']);
+      DateTime fullDate = DateTime.parse(reminder['date']);
+      DateTime reminderDate = DateTime(fullDate.year, fullDate.month, fullDate.day);
       if (events[reminderDate] == null) {
         events[reminderDate] = [];
       }
