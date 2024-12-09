@@ -237,39 +237,47 @@ class GoogleAPIClient extends IOClient {
 */
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../database/database_helper.dart'; // Importando o helper para buscar lembretes
+import '../database/database_helper.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
   @override
-  _CalendarScreenState createState() => _CalendarScreenState();
+  State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
-  Map<DateTime, List<Map<String, dynamic>>> _events = {}; // Eventos por data
-  DateTime _selectedDay = DateTime.now();
+  late Map<DateTime, List<Map<String, dynamic>>> _events;
+  List<Map<String, dynamic>> _selectedEvents = [];
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
 
   @override
   void initState() {
     super.initState();
-    _loadEvents(); // Carregar eventos ao iniciar
+    _events = {};
+    _fetchReminders();
   }
 
-  Future<void> _loadEvents() async {
-    List<Map<String, dynamic>> reminders = await DatabaseHelper().getReminders();
-    Map<DateTime, List<Map<String, dynamic>>> events = {};
-    for (var reminder in reminders) {
-      DateTime fullDate = DateTime.parse(reminder['date']);
-      DateTime reminderDate = DateTime(fullDate.year, fullDate.month, fullDate.day);
-      if (events[reminderDate] == null) {
-        events[reminderDate] = [];
+  Future<void> _fetchReminders() async {
+    final reminders = await DatabaseHelper().getReminders();
+    final Map<DateTime, List<Map<String, dynamic>>> events = {};
+
+    for (final reminder in reminders) {
+      final date = DateTime.parse(reminder['date']);
+      if (!events.containsKey(date)) {
+        events[date] = [];
       }
-      events[reminderDate]!.add(reminder);
+      events[date]!.add(reminder);
     }
+
     setState(() {
       _events = events;
     });
+  }
+
+  List<Map<String, dynamic>> _getEventsForDay(DateTime day) {
+    return _events[day] ?? [];
   }
 
   @override
@@ -281,28 +289,36 @@ class _CalendarScreenState extends State<CalendarScreen> {
       body: Column(
         children: [
           TableCalendar(
-            focusedDay: _selectedDay,
-            firstDay: DateTime.utc(2000, 01, 01),
-            lastDay: DateTime.utc(2101, 12, 31),
+            focusedDay: _focusedDay,
+            firstDay: DateTime.utc(2000),
+            lastDay: DateTime.utc(2100),
+            eventLoader: _getEventsForDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             onDaySelected: (selectedDay, focusedDay) {
               setState(() {
                 _selectedDay = selectedDay;
+                _focusedDay = focusedDay;
+                _selectedEvents = _getEventsForDay(selectedDay);
               });
             },
-            eventLoader: (day) {
-              return _events[day] ?? [];
-            },
+            calendarStyle: const CalendarStyle(
+              markerDecoration: BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
+          const SizedBox(height: 8.0),
           Expanded(
             child: ListView.builder(
-              itemCount: _events[_selectedDay]?.length ?? 0,
+              itemCount: _selectedEvents.length,
               itemBuilder: (context, index) {
-                var reminder = _events[_selectedDay]?[index];
+                final event = _selectedEvents[index];
                 return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: ListTile(
-                    title: Text(reminder?['title'] ?? 'No Title'),
-                    subtitle: Text(reminder?['description'] ?? 'No Description'),
+                    title: Text(event['title']),
+                    subtitle: Text(event['description']),
                   ),
                 );
               },
@@ -313,4 +329,3 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 }
-
