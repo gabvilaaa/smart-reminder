@@ -77,6 +77,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               .device
                               .length,
                           itemBuilder: (context, index) {
+                            if(!context.read<LoadedEsps>().device[index].getStatusConection()) {
+                              try {
+                                context
+                                    .read<LoadedEsps>()
+                                    .device[index]
+                                    .connectBluetooth(context)
+                                    .whenComplete(() {
+                                  context.read<LoadedEsps>().update();
+                                });
+                              } catch (e) {
+
+                              }
+                            }
+
                             return Card(
                                 child: CheckboxListTile(
                                   title: Text(espAvaibles[index]
@@ -88,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onChanged: (bool? value) {
                                     setState( () {
                                       context.read<LoadedEsps>().addValues(index, value!);
-                                      print("Atulizou para ${valuesLocal[index]} na posicao $index");
+                                      print("Atualizou para ${valuesLocal[index]} na posicao $index");
                                     });
                                   },
                                 )
@@ -96,21 +110,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           }),
                     ),
                     const SizedBox(height: 10),
-                    FloatingActionButton(
+                    MaterialButton(
 
                       child: const Text("Salvar Lembretes"),
                         onPressed: () async {
-                        setState(() {
-
+                        reminders = await DatabaseHelper().getReminders();
+                        setState(()  {
+                          Navigator.of(context).pop();
                         });
-                          for(int i=0;i<valuesLocal.length;i++){
-                            if(valuesLocal[i]){
-                              reminders = await DatabaseHelper().getReminders();
-                              print("Status conexão: ${espAvaibles[i].getStatusConection()}");
-                              print ("Characteristic encontrado ${espAvaibles[i].characteristic?.uuid.toString()}");
-                              espAvaibles[i].writeListText("newReminder", [reminders[i]['title'], reminders[i]['description'], reminders[i]['date']], "@", context);
-                            }
-                          }
                         })
                   ],
                 )),
@@ -120,11 +127,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showReminderDialog({Map<String, dynamic>? reminder, int? index}) {
 
-    final _titleController = TextEditingController(text: reminder?['title']);
-    final _descriptionController =
+    final titleController = TextEditingController(text: reminder?['title']);
+    final descriptionController =
         TextEditingController(text: reminder?['description']);
     print("Datas existentes: ${reminder?['date']}");
-    DateTime? _selectedDate =
+    DateTime? selectedDate =
         reminder != null ? DateTime.parse(reminder['date']!) : null;
 
     showDialog(
@@ -141,17 +148,17 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _titleController,
+                controller: titleController,
                 decoration: const InputDecoration(labelText: 'Title'),
               ),
               TextField(
-                controller: _descriptionController,
+                controller: descriptionController,
                 decoration: const InputDecoration(labelText: 'Description'),
               ),
               const SizedBox(height: 10),
-              Text(_selectedDate == null
+              Text(selectedDate == null
                   ? 'No Date Chosen!'
-                  : 'Date: ${DateFormat('yyyy-MM-dd HH:mm').format(_selectedDate!)}'),
+                  : 'Date: ${DateFormat('yyyy-MM-dd HH:mm').format(selectedDate!)}'),
               TextButton(
                 onPressed: () async {
                   DateTime? pickedDate = await showDatePicker(
@@ -169,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     if (pickedTime != null) {
                       setState(() {
-                        _selectedDate = DateTime(
+                        selectedDate = DateTime(
                           pickedDate.year,
                           pickedDate.month,
                           pickedDate.day,
@@ -200,18 +207,25 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
-                if (_titleController.text.isNotEmpty &&
-                    _descriptionController.text.isNotEmpty &&
-                    _selectedDate != null) {
+                for(int i=0;i<valuesLocal.length;i++){
+                  if(valuesLocal[i]){
+                    // print("Status conexão: ${espAvaibles[i].getStatusConection()}");
+                    // print ("Characteristic encontrado ${espAvaibles[i].characteristic?.uuid.toString()}");
+                    espAvaibles[i].writeListText("newReminder", [reminders[i]['title'], reminders[i]['description'], reminders[i]['date']], "@", context);
+                  }
+                }
+                if (titleController.text.isNotEmpty &&
+                    descriptionController.text.isNotEmpty &&
+                    selectedDate != null) {
                   setState(() {
                     final newReminder = {
-                      'title': _titleController.text,
-                      'description': _descriptionController.text,
-                      'date': _selectedDate!.toString(),
+                      'title': titleController.text,
+                      'description': descriptionController.text,
+                      'date': selectedDate!.toString(),
                     };
                     if (index == null) {
 
@@ -226,6 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       reminders[index] = newReminder; // Atualizar lista local
                     }
                   });
+
                   Navigator.of(context).pop();
                 }
               },

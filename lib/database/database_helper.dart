@@ -56,7 +56,7 @@ class DatabaseHelper {
 
   Future<int> updateReminder(int id, Map<String, String> reminder) async {
     final db = await database;
-    reminder['updatedAt'] = DateTime.now().toString();
+    reminder['updated_at'] = DateTime.now().toString();
     return await db
         .update('reminders', reminder, where: 'id = ?', whereArgs: [id]);
   }
