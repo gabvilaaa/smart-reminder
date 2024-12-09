@@ -86,9 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     .whenComplete(() {
                                   context.read<LoadedEsps>().update();
                                 });
-                              } catch (e) {
-
-                              }
+                              } catch (e) {}
                             }
 
                             return Card(

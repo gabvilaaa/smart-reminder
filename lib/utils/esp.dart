@@ -163,7 +163,24 @@ class Esp{
         const SnackBar(content: Text('Falha ao enviar texto!')),
       );
     }
-    characteristic??await getServices();
+    characteristic??await getServices().whenComplete((){
+        print([
+          DateTime.now().year.toString(),
+          DateTime.now().month.toString().padLeft(2, '0'),
+          DateTime.now().day.toString().padLeft(2, '0'),
+          DateTime.now().hour.toString().padLeft(2, '0'),
+          DateTime.now().minute.toString().padLeft(2, '0'),
+          DateTime.now().second.toString().padLeft(2, '0'),
+        ].toString());
+        this.writeListText("updateTime", [
+          DateTime.now().year.toString(),
+          DateTime.now().month.toString().padLeft(2, '0'),
+          DateTime.now().day.toString().padLeft(2, '0'),
+          DateTime.now().hour.toString().padLeft(2, '0'),
+          DateTime.now().minute.toString().padLeft(2, '0'),
+          DateTime.now().second.toString().padLeft(2, '0'),
+        ], "@", context);
+    });
 
   }
 
