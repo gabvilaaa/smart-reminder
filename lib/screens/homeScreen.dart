@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:projeto_reminder/utils/ProviderStore.dart';
-import 'package:projeto_reminder/utils/snackbar.dart';
+
+// import 'package:projeto_reminder/utils/snackbar.dart';
 import 'package:provider/provider.dart';
-
-
 
 import 'dart:math';
 import '../database/database_helper.dart';
 import '../utils/esp.dart';
-
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,23 +19,24 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> reminders = List.empty(growable: true);
-  late List<bool> valuesLocal ;
-  late List<Esp> espAvaibles=[];
+  late List<bool> valuesLocal;
 
+  late List<Esp> espAvaibles = [];
 
   @override
   void initState() {
     super.initState();
-    espAvaibles.isEmpty?recuperarDados(context).whenComplete((){
-      context.read<LoadedEsps>().valuesCreate();
-    }):null;
+    espAvaibles.isEmpty
+        ? recuperarDados(context).whenComplete(() {
+            context.read<LoadedEsps>().valuesCreate();
+          })
+        : null;
 
     _loadReminders();
-
   }
 
   @override
-  void didChangeDependencies() async{
+  void didChangeDependencies() async {
     espAvaibles = context.watch<LoadedEsps>().device;
     valuesLocal = context.watch<LoadedEsps>().values;
 
@@ -55,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  _defineEsptoReminders(){
+  _defineEsptoReminders() {
     showDialog(
         context: context,
         builder: (BuildContext mainContex) {
@@ -63,21 +62,21 @@ class _HomeScreenState extends State<HomeScreen> {
             insetPadding: const EdgeInsets.all(30),
             child: SizedBox(
                 height: 550,
-                child:Column(
-
+                child: Column(
                   children: [
                     const Text("Dispositivos disponíveis:",
                         style: TextStyle(fontSize: 22)),
                     SizedBox(
-                      child:ListView.builder(
-                          padding:  const EdgeInsets.all(20),
+                      child: ListView.builder(
+                          padding: const EdgeInsets.all(20),
                           shrinkWrap: true,
-                          itemCount: mainContex
-                              .read<LoadedEsps>()
-                              .device
-                              .length,
+                          itemCount:
+                              mainContex.read<LoadedEsps>().device.length,
                           itemBuilder: (context, index) {
-                            if(!context.read<LoadedEsps>().device[index].getStatusConection()) {
+                            if (!context
+                                .read<LoadedEsps>()
+                                .device[index]
+                                .getStatusConection()) {
                               try {
                                 context
                                     .read<LoadedEsps>()
@@ -91,31 +90,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             return Card(
                                 child: CheckboxListTile(
-                                  title: Text(espAvaibles[index]
-                                      .name),
-                                  subtitle: Text(
-                                      "Status: ${(espAvaibles[index].getStatusConection()??false)?"Conectado":"Desconectado"} \n"
-                                          "ID: ${espAvaibles[index].subtittle}"),
-                                  value: context.watch<LoadedEsps>().values[index],
-                                  onChanged: (bool? value) {
-                                    setState( () {
-                                      context.read<LoadedEsps>().addValues(index, value!);
-                                      print("Atualizou para ${valuesLocal[index]} na posicao $index");
-                                    });
-                                  },
-                                )
-                            );
+                              title: Text(espAvaibles[index].name),
+                              subtitle: Text(
+                                  "Status: ${(espAvaibles[index].getStatusConection() ?? false) ? "Conectado" : "Desconectado"} \n"
+                                  "ID: ${espAvaibles[index].subtittle}"),
+                              value: context.watch<LoadedEsps>().values[index],
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  context
+                                      .read<LoadedEsps>()
+                                      .addValues(index, value!);
+                                  print(
+                                      "Atualizou para ${valuesLocal[index]} na posicao $index");
+                                });
+                              },
+                            ));
                           }),
                     ),
                     const SizedBox(height: 10),
                     MaterialButton(
-
-                      child: const Text("Salvar Lembretes"),
+                        child: const Text("Salvar Lembretes"),
                         onPressed: () async {
-                        reminders = await DatabaseHelper().getReminders();
-                        setState(()  {
-                          Navigator.of(context).pop();
-                        });
+                          reminders = await DatabaseHelper().getReminders();
+                          setState(() {
+                            Navigator.of(context).pop();
+                          });
                         })
                   ],
                 )),
@@ -123,8 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
         });
   }
 
-  void _showReminderDialog({Map<String, dynamic>? reminder, int? index}) {
-
+  void _showReminderDialog(
+      {Map<String, dynamic>? reminder, required int index}) {
     final titleController = TextEditingController(text: reminder?['title']);
     final descriptionController =
         TextEditingController(text: reminder?['description']);
@@ -135,7 +134,6 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-
         // valuesLocal = List.generate(
         //   espAvaibles.length,
         //       (index) => false,
@@ -194,8 +192,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       _defineEsptoReminders();
                       print("Atualizando");
                     });
-
-
                   },
                   child: const Text("Selecionar Device responsvel"))
             ],
@@ -209,13 +205,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                for(int i=0;i<valuesLocal.length;i++){
-                  if(valuesLocal[i]){
-                    // print("Status conexão: ${espAvaibles[i].getStatusConection()}");
-                    // print ("Characteristic encontrado ${espAvaibles[i].characteristic?.uuid.toString()}");
-                    espAvaibles[i].writeListText("newReminder", [reminders[i]['title'], reminders[i]['description'], reminders[i]['date']], "@", context);
-                  }
-                }
                 if (titleController.text.isNotEmpty &&
                     descriptionController.text.isNotEmpty &&
                     selectedDate != null) {
@@ -225,13 +214,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       'description': descriptionController.text,
                       'date': selectedDate!.toString(),
                     };
-                    if (index == null) {
+                    if (reminders.isNotEmpty) {
+                      for (int i = 0; i < valuesLocal.length; i++) {
+                        if (valuesLocal[i]) {
+                          int temp = index?.toInt() ?? 0;
 
+                          // print("Status conexão: ${espAvaibles[i].getStatusConection()}");
+                          // print ("Characteristic encontrado ${espAvaibles[i].characteristic?.uuid.toString()}");
+                          espAvaibles[temp].writeListText(
+                              "newReminder",
+                              [
+                                reminders[temp]['title'],
+                                reminders[temp]['description'],
+                                reminders[temp]['date']
+                              ],
+                              "@",
+                              context);
+                        }
+                      }
                       DatabaseHelper().insertReminder(newReminder);
                       print("dados: ${DatabaseHelper().getReminders()}");
                       reminders.add(newReminder);
                     } else {
-
                       int id = reminders[index]['id'];
                       DatabaseHelper().updateReminder(id, newReminder);
 
@@ -252,9 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    setState(() {
-
-    });
+    setState(() {});
     return Scaffold(
       body: Column(
         children: [
@@ -296,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showReminderDialog(),
+        onPressed: () => _showReminderDialog(index: 0),
         child: const Icon(Icons.add),
       ),
     );
