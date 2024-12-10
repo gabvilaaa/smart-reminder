@@ -18,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> reminders = List.empty(growable: true);
+  List<Map<String, dynamic>> reminders = [];
   late List<bool> valuesLocal;
 
   late List<Esp> espAvaibles = [];
@@ -73,11 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           itemCount:
                               mainContex.read<LoadedEsps>().device.length,
                           itemBuilder: (context, index) {
-                            if (!context
-                                .read<LoadedEsps>()
-                                .device[index]
-                                .getStatusConection()) {
-                              try {
+                            try {
+                              if (context
+                                      .read<LoadedEsps>()
+                                      .device[index]
+                                      .getConectionState() ==
+                                  BluetoothConnectionState.disconnected) {
                                 context
                                     .read<LoadedEsps>()
                                     .device[index]
@@ -85,8 +86,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     .whenComplete(() {
                                   context.read<LoadedEsps>().update();
                                 });
-                              } catch (e) {}
-                            }
+                              }
+                            } catch (e) {}
 
                             return Card(
                                 child: CheckboxListTile(
@@ -168,6 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     TimeOfDay? pickedTime = await showTimePicker(
                       context: context,
                       initialTime: TimeOfDay.now(),
+
                     );
 
                     if (pickedTime != null) {
@@ -180,10 +182,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           pickedTime.minute,
                         );
                       });
+                      setState(() {
+
+                      });
                     }
                   }
                 },
-                child: Text('Choose Date and Time'),
+
+                child: const Text('Choose Date and Time'),
               ),
               const SizedBox(height: 10),
               TextButton(
@@ -208,40 +214,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (titleController.text.isNotEmpty &&
                     descriptionController.text.isNotEmpty &&
                     selectedDate != null) {
-                  setState(() {
-                    final newReminder = {
-                      'title': titleController.text,
-                      'description': descriptionController.text,
-                      'date': selectedDate!.toString(),
-                    };
-                    if (reminders.isNotEmpty) {
-                      for (int i = 0; i < valuesLocal.length; i++) {
-                        if (valuesLocal[i]) {
-                          int temp = index?.toInt() ?? 0;
+                  final newReminder = {
+                    'title': titleController.text,
+                    'description': descriptionController.text,
+                    'date': selectedDate!.toString(),
+                  };
+                  if (index == -1) {
+                    DatabaseHelper().insertReminder(newReminder);
+                    print("dados: ${DatabaseHelper().getReminders()}");
+                    _loadReminders();
+                  } else {
+                    int id = reminders[index]['id'];
+                    setState(() {
+                      DatabaseHelper().updateReminder(id + 1, newReminder);
+                    });
+                    _loadReminders();
 
-                          // print("Status conexão: ${espAvaibles[i].getStatusConection()}");
-                          // print ("Characteristic encontrado ${espAvaibles[i].characteristic?.uuid.toString()}");
-                          espAvaibles[temp].writeListText(
-                              "newReminder",
-                              [
-                                reminders[temp]['title'],
-                                reminders[temp]['description'],
-                                reminders[temp]['date']
-                              ],
-                              "@",
-                              context);
-                        }
+                    for (int i = 0; i < valuesLocal.length; i++) {
+                      if (valuesLocal[i]) {
+                        int temp = index.toInt() ?? 0;
+
+                        // print("Status conexão: ${espAvaibles[i].getStatusConection()}");
+                        // print ("Characteristic encontrado ${espAvaibles[i].characteristic?.uuid.toString()}");
+                        espAvaibles[i].writeListText(
+                            "newReminder",
+                            [
+                              reminders[temp]['title'],
+                              reminders[temp]['description'],
+                              reminders[temp]['date']
+                            ],
+                            "@",
+                            context);
                       }
-                      DatabaseHelper().insertReminder(newReminder);
-                      print("dados: ${DatabaseHelper().getReminders()}");
-                      reminders.add(newReminder);
-                    } else {
-                      int id = reminders[index]['id'];
-                      DatabaseHelper().updateReminder(id, newReminder);
-
-                      reminders[index] = newReminder; // Atualizar lista local
                     }
-                  });
+
+                    // reminders[index] = newReminder; // Atualizar lista local
+                  }
+                  //   setState(() {
+                  // });
 
                   Navigator.of(context).pop();
                 }
@@ -257,6 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     setState(() {});
+
     return Scaffold(
       body: Column(
         children: [
@@ -271,34 +282,38 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView.builder(
               itemCount: reminders.length,
               itemBuilder: (context, index) {
-                return Card(
-                  color: Color.fromRGBO(
-                    Random().nextInt(255),
-                    Random().nextInt(255),
-                    Random().nextInt(255),
-                    Random().nextDouble(),
-                  ),
-                  margin: const EdgeInsets.all(8),
-                  child: ListTile(
-                    title: Text(reminders[index]['title']),
-                    subtitle: Text(
-                      '${reminders[index]['description']} - ${reminders[index]['date']}',
+                if (DateTime.parse(reminders[index]['date']).isBefore(DateTime.now())) {
+                  return Card();
+                } else {
+                  return Card(
+                    color: Color.fromRGBO(
+                      Random().nextInt(255),
+                      Random().nextInt(255),
+                      Random().nextInt(255),
+                      Random().nextDouble(),
                     ),
-                    trailing: const Icon(Icons.notifications_active),
-                    onTap: () {
-                      // Editar lembrete ao clicar
-                      _showReminderDialog(
-                          reminder: reminders[index], index: index);
-                    },
-                  ),
-                );
+                    margin: const EdgeInsets.all(8),
+                    child: ListTile(
+                      title: Text(reminders[index]['title']),
+                      subtitle: Text(
+                        '${reminders[index]['description']} - ${DateFormat('yyyy/MM/dd HH:mm').format(DateTime.parse(reminders[index]['date']))}',
+                      ),
+                      trailing: const Icon(Icons.notifications_active),
+                      onTap: () {
+                        // Editar lembrete ao clicar
+                        _showReminderDialog(
+                            reminder: reminders[index], index: index);
+                      },
+                    ),
+                  );
+                }
               },
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showReminderDialog(index: 0),
+        onPressed: () => _showReminderDialog(index: -1),
         child: const Icon(Icons.add),
       ),
     );
