@@ -19,38 +19,79 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> reminders = [];
+  List<Map<String, dynamic>> addedDevices = [];
   late List<bool> valuesLocal;
-
   late List<Esp> espAvaibles = [];
 
   @override
   void initState() {
     super.initState();
-    espAvaibles.isEmpty
-        ? recuperarDados(context).whenComplete(() {
-            context.read<LoadedEsps>().valuesCreate();
-          })
-        : null;
+    _initialize();
+  }
 
-    _loadReminders();
+  Future<void> _initialize() async {
+    await _loadReminders();
+    context.read<LoadedEsps>().valuesCreate();
+
+    if (espAvaibles.isEmpty) {
+      await recuperarDados(context);
+    } else {
+      for (Esp esp in context
+          .read<LoadedEsps>()
+          .device) {
+        try {
+          if (!esp.getStatusConection()) {
+            esp.connectBluetooth(context).whenComplete(() async {
+              context.read<LoadedEsps>().update();
+              List<Map<String, dynamic>> relatedDevices = await DatabaseHelper()
+                  .getRemindersForDevice(esp.code);
+
+
+              for (var remind in relatedDevices) {
+
+                if (DateTime.parse(remind['date'].toString()).isAfter(
+                    DateTime.now())) {
+                  Future.delayed(const Duration(milliseconds: 500))
+                      .whenComplete(() {
+                    esp.writeListText(
+                      "newReminder",
+                      [
+                        remind['title'], remind['description'], remind['date']],
+                      "@",
+                      context,
+                    );
+                  });
+                }
+              }
+            });
+          }
+        } catch (e) {}
+        print("Fim try catch");
+      }
+    }
   }
 
   @override
   void didChangeDependencies() async {
-    espAvaibles = context.watch<LoadedEsps>().device;
-    valuesLocal = context.watch<LoadedEsps>().values;
-
     super.didChangeDependencies();
+    espAvaibles = context
+        .watch<LoadedEsps>()
+        .device;
+    valuesLocal = context
+        .watch<LoadedEsps>()
+        .values;
   }
 
   Future<void> _loadReminders() async {
     List<Map<String, dynamic>> loadedReminders =
-        await DatabaseHelper().getReminders();
-
+    await DatabaseHelper().getReminders();
+    List<Map<String, dynamic>> loadedAdded =
+    await DatabaseHelper().getAddedDevices();
     print("Lembretes carregados do banco de dados: $loadedReminders");
+    print("Relações carregados do banco de dados: $loadedAdded");
     setState(() {
-      reminders =
-          List.from(loadedReminders); // Cria uma cópia modificável da lista
+      reminders = List.from(loadedReminders);
+      addedDevices = List.from(loadedAdded);
     });
   }
 
@@ -71,41 +112,34 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.all(20),
                           shrinkWrap: true,
                           itemCount:
-                              mainContex.read<LoadedEsps>().device.length,
+                          mainContex
+                              .read<LoadedEsps>()
+                              .device
+                              .length,
                           itemBuilder: (context, index) {
-                            try {
-                              if (context
-                                      .read<LoadedEsps>()
-                                      .device[index]
-                                      .getConectionState() ==
-                                  BluetoothConnectionState.disconnected) {
-                                context
-                                    .read<LoadedEsps>()
-                                    .device[index]
-                                    .connectBluetooth(context)
-                                    .whenComplete(() {
-                                  context.read<LoadedEsps>().update();
-                                });
-                              }
-                            } catch (e) {}
-
                             return Card(
                                 child: CheckboxListTile(
-                              title: Text(espAvaibles[index].name),
-                              subtitle: Text(
-                                  "Status: ${(espAvaibles[index].getStatusConection() ?? false) ? "Conectado" : "Desconectado"} \n"
-                                  "ID: ${espAvaibles[index].subtittle}"),
-                              value: context.watch<LoadedEsps>().values[index],
-                              onChanged: (bool? value) {
-                                setState(() {
-                                  context
-                                      .read<LoadedEsps>()
-                                      .addValues(index, value!);
-                                  print(
-                                      "Atualizou para ${valuesLocal[index]} na posicao $index");
-                                });
-                              },
-                            ));
+                                  title: Text(espAvaibles[index].name),
+                                  subtitle: Text(
+                                      "Status: ${(espAvaibles[index]
+                                          .getStatusConection() ?? false)
+                                          ? "Conectado"
+                                          : "Desconectado"} \n"
+                                          "ID: ${espAvaibles[index]
+                                          .subtittle}"),
+                                  value: context
+                                      .watch<LoadedEsps>()
+                                      .values[index],
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      context
+                                          .read<LoadedEsps>()
+                                          .addValues(index, value!);
+                                      print(
+                                          "Atualizou para ${valuesLocal[index]} na posicao $index");
+                                    });
+                                  },
+                                ));
                           }),
                     ),
                     const SizedBox(height: 10),
@@ -127,18 +161,14 @@ class _HomeScreenState extends State<HomeScreen> {
       {Map<String, dynamic>? reminder, required int index}) {
     final titleController = TextEditingController(text: reminder?['title']);
     final descriptionController =
-        TextEditingController(text: reminder?['description']);
+    TextEditingController(text: reminder?['description']);
     print("Datas existentes: ${reminder?['date']}");
     DateTime? selectedDate =
-        reminder != null ? DateTime.parse(reminder['date']!) : null;
+    reminder != null ? DateTime.parse(reminder['date']!) : null;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // valuesLocal = List.generate(
-        //   espAvaibles.length,
-        //       (index) => false,
-        // );
         return AlertDialog(
           title: Text(reminder == null ? 'Add New Reminder' : 'Edit Reminder'),
           content: Column(
@@ -155,7 +185,8 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 10),
               Text(selectedDate == null
                   ? 'No Date Chosen!'
-                  : 'Date: ${DateFormat('yyyy-MM-dd HH:mm').format(selectedDate!)}'),
+                  : 'Date: ${DateFormat('yyyy-MM-dd HH:mm').format(
+                  selectedDate!)}'),
               TextButton(
                 onPressed: () async {
                   DateTime? pickedDate = await showDatePicker(
@@ -219,23 +250,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     'description': descriptionController.text,
                     'date': selectedDate!.toString(),
                   };
+
                   if (index == -1) {
-                    DatabaseHelper().insertReminder(newReminder);
-                    print("dados: ${DatabaseHelper().getReminders()}");
-                    _loadReminders();
+                    setState(() {
+                      DatabaseHelper().insertReminder(newReminder);
+                      _loadReminders();
+                    });
                   } else {
                     int id = reminders[index]['id'];
                     setState(() {
-                      DatabaseHelper().updateReminder(id + 1, newReminder);
+                      DatabaseHelper().updateReminder(id, newReminder);
+                      _loadReminders();
                     });
-                    _loadReminders();
-
-                    for (int i = 0; i < valuesLocal.length; i++) {
-                      if (valuesLocal[i]) {
-                        int temp = index.toInt() ?? 0;
-
-                        // print("Status conexão: ${espAvaibles[i].getStatusConection()}");
-                        // print ("Characteristic encontrado ${espAvaibles[i].characteristic?.uuid.toString()}");
+                  }
+                  for (int i = 0; i < valuesLocal.length; i++) {
+                    if (valuesLocal[i]) {
+                      _loadReminders().whenComplete(() {
+                        final newAdded = {
+                          'id_reminder': (index != -1) ? index : reminders
+                              .last['id'],
+                          'id_device': i.toString()
+                        };
+                        DatabaseHelper().insertAddedDevices(newAdded);
+                        int temp = (index != -1) ? index : reminders.last['id']-1;
                         espAvaibles[i].writeListText(
                             "newReminder",
                             [
@@ -245,14 +282,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                             "@",
                             context);
-                      }
+                      });
                     }
-
-                    // reminders[index] = newReminder; // Atualizar lista local
                   }
-                  //   setState(() {
-                  // });
 
+                  _loadReminders();
                   Navigator.of(context).pop();
                 }
               },
@@ -282,7 +316,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView.builder(
               itemCount: reminders.length,
               itemBuilder: (context, index) {
-                if (DateTime.parse(reminders[index]['date']).isBefore(DateTime.now())) {
+                if (DateTime.parse(reminders[index]['date']).isBefore(
+                    DateTime.now())) {
                   return Card();
                 } else {
                   return Card(
@@ -296,7 +331,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ListTile(
                       title: Text(reminders[index]['title']),
                       subtitle: Text(
-                        '${reminders[index]['description']} - ${DateFormat('yyyy/MM/dd HH:mm').format(DateTime.parse(reminders[index]['date']))}',
+                        '${reminders[index]['description']} - ${DateFormat(
+                            'yyyy/MM/dd HH:mm').format(DateTime.parse(
+                            reminders[index]['date']))}',
                       ),
                       trailing: const Icon(Icons.notifications_active),
                       onTap: () {

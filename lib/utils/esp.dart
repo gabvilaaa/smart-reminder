@@ -69,11 +69,6 @@ class Esp{
   }
 
   bool getStatusConection() {
-    // _localDevice ?? BluetoothDevice.fromId(subtittle);
-    // _localDevice.connectionState.listen((data){
-    //   return data;
-    // });
-
     return _localDevice.isConnected;
   }
 
@@ -128,12 +123,10 @@ class Esp{
   }
 
   Future getServices() async {
-    // _localDevice ??BluetoothDevice.fromId(subtittle);
-
 
     try {
-        await _localDevice.clearGattCache();
-        services = (await _localDevice.discoverServices(timeout: 5000));
+
+        services = (await _localDevice.discoverServices(timeout: 1000));
     } catch (e) {
       print("Erro encontrado: " + e.toString());
     }
@@ -147,23 +140,27 @@ class Esp{
       }
     }
 
-    if (characteristic == null) {
-      print("Erro: Characteristic não encontrada.");
-    }
+    characteristic ??print("Erro: Characteristic não encontrada.");
+
   }
 
   Future<void> connectBluetooth(BuildContext context) async {
     // _localDevice ?? BluetoothDevice.fromId(subtittle);
-    try {
-      await _localDevice.connect().whenComplete((){
-        print("Realmente Conectado");
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Falha ao enviar texto!')),
-      );
-    }
-    characteristic??await getServices().whenComplete((){
+    if(!conectado &&_localDevice.remoteId.str != "0xVAZIO") {
+       try {
+        _localDevice.connect(timeout: const Duration(milliseconds: 2000)).whenComplete(() {
+
+          conectado = true;
+
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Falha ao enviar texto!')),
+        );
+      }
+      Future.delayed(const Duration(milliseconds: 1000)).whenComplete(() async {
+
+      characteristic ?? await getServices().whenComplete(() {
         print([
           DateTime.now().year.toString(),
           DateTime.now().month.toString().padLeft(2, '0'),
@@ -172,16 +169,22 @@ class Esp{
           DateTime.now().minute.toString().padLeft(2, '0'),
           DateTime.now().second.toString().padLeft(2, '0'),
         ].toString());
-        this.writeListText("updateTime", [
-          DateTime.now().year.toString(),
-          DateTime.now().month.toString().padLeft(2, '0'),
-          DateTime.now().day.toString().padLeft(2, '0'),
-          DateTime.now().hour.toString().padLeft(2, '0'),
-          DateTime.now().minute.toString().padLeft(2, '0'),
-          DateTime.now().second.toString().padLeft(2, '0'),
-        ], "@", context);
-    });
+        this.writeListText(
+            "updateTime",
+            [
+              DateTime.now().year.toString(),
+              DateTime.now().month.toString().padLeft(2, '0'),
+              DateTime.now().day.toString().padLeft(2, '0'),
+              DateTime.now().hour.toString().padLeft(2, '0'),
+              DateTime.now().minute.toString().padLeft(2, '0'),
+              DateTime.now().second.toString().padLeft(2, '0'),
+            ],
+            "@",
+            context);
+      });
+      });
 
+    }
   }
 
   @override
@@ -218,10 +221,9 @@ Future recuperarDados(BuildContext context) async {
             : context.read<LoadedEsps>().addDevices(Esp.conectado(
              espName,
              espSubtittle,
-             BluetoothDevice
-                .fromId(espSubtittle)
-                .isConnected,
-             i));
+             BluetoothDevice.fromId(espSubtittle).isConnected,
+             i
+        ));
         for(Esp e in context.read<LoadedEsps>().device)
         print("Elemento atualizado ${e.name}");
       }

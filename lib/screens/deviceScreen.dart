@@ -20,7 +20,7 @@ class DeviceScreen extends StatefulWidget {
 }
 
 class _CreateDeviceScreen extends State<DeviceScreen> {
-  Esp espSalvo = Esp("vazio", "vazio");
+  Esp espSalvo = Esp("0xVAZIO", "0xVAZIO");
 
   List<Esp> espAvaibles = [Esp("NAD", "NADA")];
 
@@ -68,27 +68,66 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
 
   Widget _conectDevice(int index) {
 
+
     if (context.read<LoadedEsps>().device[index].getStatusConection()) {
       return const Icon(Icons.check);
-    } 
-    else {
+    } else {
       try {
-        context.read<LoadedEsps>().device[index].connectBluetooth(context).whenComplete((){
-          context.read<LoadedEsps>().update();
+        context
+            .read<LoadedEsps>().device[index].connectBluetooth(context);
 
+        Future.delayed(const Duration(milliseconds: 1000)).whenComplete((){
+          setState(() {
+            recuperarDados(context);
+          });
         });
-        // context.read<LoadedEsps>().connectDevice(index, context);
         return const Icon(Icons.downloading);
       } catch (e) {
         return const Icon(Icons.cancel_outlined);
       }
     }
-    // else if( statusConexao == BluetoothConnectionState.connecting){
-    //   return const Icon(Icons.downloading);
-    // }
   }
 
-  Widget _getExpansionTile(int index, VoidCallback onUpdate) {
+  Widget _updatedevice(String newName, int index){
+    return AlertDialog(
+      content: Dialog(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Novo nome: "),
+            TextField(
+              onChanged: (String text) {
+                setState(() {
+                  newName = text;
+                });
+              },
+            ),
+            ElevatedButton(
+                onPressed: () {
+                  _updateDados(
+                      context.read<LoadedEsps>().device[index].code,
+                      newName);
+                  setState(() {
+                    Future.delayed(const Duration(
+                        milliseconds: 500)).whenComplete(() {
+                      // recuperarDados(context);
+                    });
+                  });
+                  // onUpdate();
+                  setState(() {
+
+                  });
+                  Navigator.of(context).pop();
+                },
+                child: Text("Salvar"))
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _getExpansionTile(int index) {
     return Card(
         color: Colors.greenAccent,
         child: ExpansionTile(
@@ -106,49 +145,14 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
                           context: context,
                           builder: (BuildContext context) {
                             String newName = "", newSub;
-                            return AlertDialog(
-                              content: Dialog(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text("Novo nome: "),
-                                    TextField(
-                                      onChanged: (String text) {
-                                        setState(() {
-                                          newName = text;
-                                        });
-                                      },
-                                    ),
-                                    ElevatedButton(
-                                        onPressed: () {
-                                          _updateDados(
-                                              context
-                                                  .read<LoadedEsps>()
-                                                  .device[index]
-                                                  .code,
-                                              newName);
-                                          setState(() {
-                                            Future.delayed(const Duration(
-                                                    milliseconds: 500))
-                                                .whenComplete(() {
-                                              // recuperarDados(context);
-                                            });
-                                          });
-                                          onUpdate();
-
-                                          Navigator.of(context).pop();
-                                        },
-                                        child: Text("Salvar"))
-                                  ],
-                                ),
-                              ),
-                            );
+                            return _updatedevice(newName, index);
                           }).whenComplete(() {
-                        Future.delayed(const Duration(milliseconds: 500))
-                            .whenComplete(() {});
-                      });
+                        Future.delayed(const Duration(milliseconds: 1000))
+                            .whenComplete(() {
+
+                        });
                       setState(() {});
+                      });
                     });
                   },
                   icon: const Icon(Icons.edit),
@@ -164,7 +168,9 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
                           setState(() {});
                         });
                       });
-                      onUpdate();
+                      setState(() {
+
+                      });
                     },
                     icon: const Icon(Icons.delete))
               ],
@@ -186,37 +192,33 @@ class _CreateDeviceScreen extends State<DeviceScreen> {
           const SizedBox(height: 20),
           Column(
             children: List.generate(espAvaibles.length, (index) {
-
               return ((espAvaibles.isNotEmpty)
-                  ? _getExpansionTile(index, () {
-                      setState(() {
-
-                      });
-                    })
+                  ? _getExpansionTile(index)
                   : const Card());
             }),
           )
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Show the AddDevice dialog when the button is pressed
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return const AddDevice();
-            },
-          ).whenComplete(() {
-            recuperarDados(context);
+        onPressed: () async {
+          setState(() {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return const AddDevice();
+              },
+            ).whenComplete((){
+              recuperarDados(context).whenComplete((){
+                Future.delayed(const Duration(milliseconds: 500)).whenComplete((){
+                setState(() {});
 
-            Future.delayed(const Duration(milliseconds: 500)).whenComplete(() {
-              setState(() {});
+                });
+              });
             });
           });
         },
         child: const Icon(Icons.add),
       ),
     );
-    // children: List.generate(espAvaibles.length, (index) {
   }
 }

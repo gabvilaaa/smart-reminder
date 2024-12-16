@@ -91,7 +91,7 @@ class _AddDeviceState extends State<AddDevice> {
   }
 
   Future getResults() async {
-    await FlutterBluePlus.startScan(
+    FlutterBluePlus.startScan(
         timeout: const Duration(seconds: 15),
         androidUsesFineLocation: true,
         androidScanMode: AndroidScanMode.balanced,
@@ -187,6 +187,7 @@ class _AddDeviceState extends State<AddDevice> {
                     espSelecionado.salvarEsp(apelido);
 
                   }
+                  Navigator.of(context).pop("update");
                 },
                 child: const Text("Salvar"),
 

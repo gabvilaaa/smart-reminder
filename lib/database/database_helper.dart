@@ -28,7 +28,7 @@ class DatabaseHelper {
       description TEXT,
       date TEXT,
       created_at TEXT,
-      updated_at TEXT
+      updated_at TEXT   
     )
   ''');
 
@@ -43,6 +43,13 @@ class DatabaseHelper {
       created_at TEXT,
       updated_at TEXT
       
+    )
+  ''');
+    await db.execute('''
+    CREATE TABLE added_device (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id_reminder INTEGER,
+      id_device INTEGER    
     )
   ''');
   }
@@ -61,23 +68,53 @@ class DatabaseHelper {
         .update('reminders', reminder, where: 'id = ?', whereArgs: [id]);
   }
 
-  Future clearPastReminders() async{
+  Future<int> deleteReminder(int id) async {
     final db = await database;
-    // print("Downloads");
-    // db.query('reminders', columns: ['date']).asStream().listen((data){
-    //   for (var row in data) {
-    //     final dateValue = row['date']; // Acessa o valor da coluna 'date'
-    //
-    //     // Faça algo com `dateValue`
-    //     print('Data encontrada: $dateValue');
-    //   }
-    //
-    // });
+    return await db.delete('reminders', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> clearReminders() async {
+    final db = await database;
+    return await db.delete('reminders', where: 'id >= 0 ');
   }
 
   Future<List<Map<String, dynamic>>> getReminders() async {
     final db = await database;
     return await db.query('reminders');
+  }
+
+  Future<int> insertAddedDevices(Map<String, dynamic> addedDevice) async {
+    final db = await database;
+    return await db.insert('added_device', addedDevice);
+  }
+
+  Future<int> updateAddedDevices(int id, Map<String, dynamic> added_device) async {
+    final db = await database;
+
+    return await db
+        .update('added_device', added_device, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteAddedDevices(int id) async {
+    final db = await database;
+    return await db.delete('added_device', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<Map<String, dynamic>>> getAddedDevices() async {
+    final db = await database;
+    return await db.query('added_device');
+  }
+
+  Future<List<Map<String, dynamic>>> getRemindersForDevice(int deviceId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> reminders = await db.rawQuery('''
+    SELECT r.*
+    FROM reminders r
+    JOIN added_device ad ON r.id = ad.id_reminder
+    WHERE ad.id_device = ?
+  ''', [deviceId]);
+
+    return reminders;
   }
 
   Future<int> insertUser(Map<String, String> user) async {
@@ -90,13 +127,6 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getUser() async {
     final db = await database;
     return await db.query('users');
-  }
-
-  Future<void> close() async {
-    final db = await _database;
-    if (db != null) {
-      await db.close();
-    }
   }
 
   Future<bool> userExists(String email) async {
@@ -116,14 +146,16 @@ class DatabaseHelper {
     return await db.delete('users', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<int> deleteReminder(int id) async {
-    final db = await database;
-    return await db.delete('reminders', where: 'id = ?', whereArgs: [id]);
-  }
-
   Future<int> updateUser(int id, Map<String, String> user) async {
     final db = await database;
     user['updated_at'] = DateTime.now().toString();
     return await db.update('users', user, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> close() async {
+    final db = await _database;
+    if (db != null) {
+      await db.close();
+    }
   }
 }
